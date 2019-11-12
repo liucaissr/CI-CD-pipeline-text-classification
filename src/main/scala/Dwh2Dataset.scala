@@ -33,6 +33,30 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   val bytesPerFetchBlock: Long = 1024L * 1024 * 2 // = initial task size
   val minPartitions            = 3
 
+  val weirdStringFromDb: String=>String=(str:String)=>{
+    try {
+      WeirdString.fromDbString(str).toString
+    } catch {
+      case e: Throwable => ""
+    }
+  }
+  val weirdStringFromDbUdf = udf(weirdStringFromDb)
+
+  val cleanTextForEmbeddings: String => String = { body =>
+    Option(body) match {
+      case None => ""
+      case Some(b) =>
+        CleanEmbeddings.cleanAll(b)
+    }
+  }
+  val cleanTextForEmbeddingsUdf = udf(cleanTextForEmbeddings)
+
+  /**
+   * index running classifier to collect extra negative dataset
+   */
+  val datasetToclassifer = Map(
+    "question.contact-request" -> "ContactRequestQuestion"
+  )
 
   def getWhitelist(in: String): Set[String] = {
     in.split(",")
@@ -42,20 +66,18 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   }
 
   //todo: refactor to object? or ...
-  def getContentIdDwh(content: String): DataFrame ={
+  def getContentDwh(content: String): DataFrame ={
     val contentDwh =  spark.read
       .parquet(exportFrom + "/svc" + content + "_deletion_reason")
         .filter("created_at > '2019-11-01'")
     contentDwh
   }
 
-  def getDatasetInfo(content: String, reasons: Set[String]): List[DatasetInfo] ={
-    val filterCond = reasons.map(lit(_))
-    val contentDwh = getContentIdDwh(content)
+  def getDatasetInfo(content: String): List[DatasetInfo] ={
+    val contentDwh = getContentDwh(content)
     val contentReasons = contentDwh
       .select("reason")
       .distinct()
-      .filter($"reason".isin(filterCond.toSeq: _*))
       .map(row => row.mkString(""))
       .collect()
 
@@ -63,36 +85,23 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
     for (dataset <- contentReasons) {
       datasets += DatasetInfo(
         content,
-        dataset,
-        contentDwh.filter(s"reason == '$dataset'").count()
+        dataset
       )
     }
     datasets.toList
   }
 
+  def getExtraNegative(di: DatasetInfo): Unit = {
+
+  }
+
   def exportDatasetContent(di: DatasetInfo): Unit ={
-    val weirdStringFromDb: String=>String=(str:String)=>{
-      try {
-        WeirdString.fromDbString(str).toString
-      } catch {
-        case e: Throwable => ""
-      }
-    }
-    val weirdStringFromDbUdf = udf(weirdStringFromDb)
 
-    val cleanTextForEmbeddings: String => String = { body =>
-      Option(body) match {
-        case None => ""
-        case Some(b) =>
-          CleanEmbeddings.cleanAll(b)
-      }
-    }
-    val cleanTextForEmbeddingsUdf = udf(cleanTextForEmbeddings)
-
-    val datasetSize              = di.datasetSize
-    val contentIdDwh = getContentIdDwh(di.content)
+    val contentIdDwh = getContentDwh(di.content)
       .filter(s"reason == '${di.datasetName}'")
       .select("question_id")
+
+    val datasetSize              = contentIdDwh.count()
     val contentDwh = spark.read.parquet(exportFrom + "/ask_" + di.content).withColumnRenamed("id", di.content+"_id")
 
     println(s"""
@@ -108,17 +117,21 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
       .withColumn("label", lit("__label__"+di.datasetName))
       .select(di.content+"_id","label", "decoded_title", "decoded_body")
 
-    val destDir = exportTo + di.content.substring(0,1) + "c-deletionreason-" + di.datasetName.replaceAll("[\\s\\-()]", "") +"/"+ buildNumber
-    val parquetConfig = new ParquetWriterConfig(new Path(exportTo), destDir)
+    // ivy-repo
+    val basePath = new Path(exportTo + di.content.substring(0,1)
+      + "c-deletionreason-"
+      + di.datasetName.replaceAll("[\\s\\-()]", "")
+      + "/"+ buildNumber )
 
-    val tmpDir = "parquet_tmp_dir"
-    val tmpOutputDir = new Path(parquetConfig.basePath, tmpDir)
-    val toDeleteDir = new Path(parquetConfig.basePath, "to_delete")
+    val destDir = "positive/parquet"
+    val tmpDir = "positive/parquet_tmp_dir"
 
-    val destOutputDir = new Path(parquetConfig.basePath, destDir)
+    val tmpOutputDir = new Path(basePath, tmpDir)
+    val toDeleteDir = new Path(basePath, "positive/to_delete")
+    val destOutputDir = new Path(basePath, destDir)
 
     val hdfs = FileSystem.get(spark.sparkContext.hadoopConfiguration)
-    
+
     df.coalesce(1)
       .write
       .mode("overwrite")
@@ -126,13 +139,14 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
 
     // varify dataset
     if( spark.read.parquet(tmpOutputDir.toString).count() <= datasetSize) {
+      println(s"""
+                 | The dataset size is verified, exporting ...
+                 |  Copy from file '${tmpOutputDir.toString}' to '${destOutputDir.toString}'
+                 """.stripMargin)
       if (hdfs.exists(destOutputDir)) {
         hdfs.rename(destOutputDir, toDeleteDir)
       }
       hdfs.rename(tmpOutputDir, destOutputDir)
-      println(s"""
-                 | The dataset size is verified, exporting ...
-                 """.stripMargin)
     } else {
       println(s"""
                  | The dataset size is abnomaly large, stoping ...
@@ -151,11 +165,12 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
     config.getString("job.dwh2dataset.export.only") match{
       // or just some tables
       case reasonString: String => {
-        val reasons  = getWhitelist(reasonString)     // all reasons as positive that should be imported
-        // todo: change reasons to question.deletionreason.contact-request but not contact-request only
-        val contents = Iterator("question").toList
+        val datasets  = getWhitelist(reasonString)     // all reasons as positive that should be imported
+        // todo: change reasons to question.deletionreason.contact-request but not question.contact-request only
+        val contents = datasets.map(_.split('.').head)
         contents.foreach(content => {
-          getDatasetInfo(content, reasons)
+          getDatasetInfo(content)
+            .filter(di => datasets.contains(di.content + "." + di.datasetName.toLowerCase))
             .foreach(di => exportDatasetContent(di))
         })
       }
@@ -165,6 +180,6 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   }
 }
 
-case class DatasetInfo(content: String, datasetName: String, datasetSize: Long) {
-  override def toString: String = content + "." + datasetName + ": " + datasetSize + " rows"
+case class DatasetInfo(content: String, datasetName: String) {
+  override def toString: String = content + "." + datasetName
 }
