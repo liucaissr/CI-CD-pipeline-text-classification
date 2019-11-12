@@ -1,14 +1,16 @@
 import com.typesafe.config.ConfigFactory
-import net.gutefrage.etl.commons.conf.{IgnoreSparkMasterSysProp}
+import net.gutefrage.etl.commons.conf.IgnoreSparkMasterSysProp
 import net.gutefrage.etl.commons.util.Logging
-import org.apache.spark.{SparkConf}
+import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import net.gutefrage.etl.commons.conf.SparkConfOps.LoadFromConfig
 import net.gutefrage.service.commons.mysql.jdbc.WeirdString
 import net.gutefrage.data.commons.embeddings.CleanEmbeddings
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.functions._
-
 import scala.collection.mutable.ListBuffer
+import scala.util.Properties
+import net.gutefrage.etl.commons.hdfs.ParquetWriter.ParquetWriterConfig
 
 object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   val conf = new SparkConf()
@@ -25,10 +27,12 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   val hdfsHost                 = config.getString("hdfs.host")
   val exportFrom                   = config.getString("job.dwh.mysql")
   val exportTo                   = config.getString("job.dwh2dataset.target")
+  val buildNumber               = Properties.envOrNone("BUILD_NUMBER").getOrElse("1-SNAPSHOT")
 
   val bytesPerPartition: Long  = 1024L * 1024 * 250 // MB (mind compression ration ~4:1)
   val bytesPerFetchBlock: Long = 1024L * 1024 * 2 // = initial task size
   val minPartitions            = 3
+
 
   def getWhitelist(in: String): Set[String] = {
     in.split(",")
@@ -45,13 +49,16 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
     contentDwh
   }
 
-  def getDatasetInfo(content: String): List[DatasetInfo] ={
+  def getDatasetInfo(content: String, reasons: Set[String]): List[DatasetInfo] ={
+    val filterCond = reasons.map(lit(_))
     val contentDwh = getContentIdDwh(content)
     val contentReasons = contentDwh
       .select("reason")
       .distinct()
+      .filter($"reason".isin(filterCond.toSeq: _*))
       .map(row => row.mkString(""))
       .collect()
+
     val datasets = ListBuffer[DatasetInfo]()
     for (dataset <- contentReasons) {
       datasets += DatasetInfo(
@@ -101,10 +108,38 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
       .withColumn("label", lit("__label__"+di.datasetName))
       .select(di.content+"_id","label", "decoded_title", "decoded_body")
 
+    val destDir = exportTo + di.content.substring(0,1) + "c-deletionreason-" + di.datasetName.replaceAll("[\\s\\-()]", "") +"/"+ buildNumber
+    val parquetConfig = new ParquetWriterConfig(new Path(exportTo), destDir)
+
+    val tmpDir = "parquet_tmp_dir"
+    val tmpOutputDir = new Path(parquetConfig.basePath, tmpDir)
+    val toDeleteDir = new Path(parquetConfig.basePath, "to_delete")
+
+    val destOutputDir = new Path(parquetConfig.basePath, destDir)
+
+    val hdfs = FileSystem.get(spark.sparkContext.hadoopConfiguration)
+    
     df.coalesce(1)
       .write
       .mode("overwrite")
-      .save(exportTo + di.content.substring(0,1) + "c-deletionreason-" + di.datasetName.replaceAll("[\\s\\-()]", ""))
+      .parquet(tmpOutputDir.toString)
+
+    // varify dataset
+    if( spark.read.parquet(tmpOutputDir.toString).count() <= datasetSize) {
+      if (hdfs.exists(destOutputDir)) {
+        hdfs.rename(destOutputDir, toDeleteDir)
+      }
+      hdfs.rename(tmpOutputDir, destOutputDir)
+      println(s"""
+                 | The dataset size is verified, exporting ...
+                 """.stripMargin)
+    } else {
+      println(s"""
+                 | The dataset size is abnomaly large, stoping ...
+                 """.stripMargin)
+      hdfs.rename(tmpOutputDir, toDeleteDir)
+    }
+    hdfs.delete(toDeleteDir, true)
 
     val timeB = System.currentTimeMillis()
     println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
@@ -120,9 +155,8 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
         // todo: change reasons to question.deletionreason.contact-request but not contact-request only
         val contents = Iterator("question").toList
         contents.foreach(content => {
-          getDatasetInfo(content)
-            .filter(ri => reasons.contains(ri.datasetName.toLowerCase))
-            .foreach(ri => exportDatasetContent(ri))
+          getDatasetInfo(content, reasons)
+            .foreach(di => exportDatasetContent(di))
         })
       }
       //todo: import all datasets
