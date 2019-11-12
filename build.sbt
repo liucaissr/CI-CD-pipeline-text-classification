@@ -2,6 +2,11 @@ organization := "net.gutefrage.data"
 name := "ai-dataset"
 
 import sbtassembly.AssemblyPlugin.autoImport.{MergeStrategy, PathList}
+import scala.util.Properties
+
+// Scala versions we build for
+scalaVersion := "2.11.8"
+version := Properties.envOrNone("BUILD_NUMBER").map(build => s"1.0.$build").getOrElse("1-SNAPSHOT")
 
 addCommandAlias("jenkinsTask", "; clean; assembly")
 
@@ -21,10 +26,6 @@ libraryDependencies ++= Seq(
   "net.gutefrage.etl" %% "spark-commons" % "4.4",
   "net.gutefrage"      %% "clean-embeddings" % "1.14"
 )
-
-// Scala versions we build for
-scalaVersion := "2.11.8"
-
 
 assemblyMergeStrategy in assembly := {
   case PathList("org","aopalliance", xs @ _*) => MergeStrategy.last

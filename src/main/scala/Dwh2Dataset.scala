@@ -104,7 +104,7 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
     df.coalesce(1)
       .write
       .mode("overwrite")
-      .save(exportTo + di.datasetName)
+      .save(exportTo + di.content.substring(0,1) + "c-deletionreason-" + di.datasetName.replaceAll("[\\s\\-()]", ""))
 
     val timeB = System.currentTimeMillis()
     println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
@@ -117,7 +117,7 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
       // or just some tables
       case reasonString: String => {
         val reasons  = getWhitelist(reasonString)     // all reasons as positive that should be imported
-        // todo: change reasons to question.contact-request but not contact-request only
+        // todo: change reasons to question.deletionreason.contact-request but not contact-request only
         val contents = Iterator("question").toList
         contents.foreach(content => {
           getDatasetInfo(content)
