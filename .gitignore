@@ -4,4 +4,5 @@
 .checkpoints/
 .vscode/
 target/
-project/
+project/project/
+project/target/

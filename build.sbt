@@ -6,8 +6,10 @@ import sbtassembly.AssemblyPlugin.autoImport.{MergeStrategy, PathList}
 addCommandAlias("jenkinsTask", "; clean; assembly")
 
 resolvers += Resolver.sonatypeRepo("releases")
-resolvers += "Gutefrage Release Repo" at "http://artifacts.endor.gutefrage.net/content/groups/public"
-resolvers += "twitter-repo" at "https://maven.twttr.com"
+resolvers += ("Gutefrage Release Repo" at "http://artifacts.endor.gutefrage.net/content/groups/public")
+.withAllowInsecureProtocol(true)
+resolvers += ("twitter-repo" at "https://maven.twttr.com")
+  .withAllowInsecureProtocol(true)
 
 
 libraryDependencies ++= Seq(
