@@ -12,12 +12,12 @@ import org.apache.spark.sql.functions._
 import scala.collection.mutable.ListBuffer
 import scala.util.Properties
 
-object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
+object Dwh2Negative extends IgnoreSparkMasterSysProp with Logging {
   val conf = new SparkConf()
-    .withConfig(ConfigFactory.load(), "job.dwh2dataset")
+    .withConfig(ConfigFactory.load(), "job.dwh2negative")
 
   val spark = SparkSession.builder
-    .appName("dwh2dataset")
+    .appName("dwh2negative")
     .config(conf)
     .getOrCreate()
 
@@ -26,7 +26,7 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
 
   val hdfsHost                 = config.getString("hdfs.host")
   val exportFrom                   = config.getString("job.dwh.mysql")
-  val exportTo                   = config.getString("job.dwh2dataset.target")
+  val exportTo                   = config.getString("job.dwh2negative.target")
   val buildNumber               = Properties.envOrNone("BUILD_NUMBER").getOrElse("1-SNAPSHOT")
 
   val bytesPerPartition: Long  = 1024L * 1024 * 250 // MB (mind compression ration ~4:1)
@@ -51,12 +51,6 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   }
   val cleanTextForEmbeddingsUdf = udf(cleanTextForEmbeddings)
 
-  /**
-   * index running classifier to collect extra negative dataset
-   */
-  val datasetToRule = Map(
-    "question.contact-request" -> "ContactRequestQuestion"
-  )
 
   def getWhitelist(in: String): Set[String] = {
     in.split(",")
@@ -90,62 +84,8 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
     datasets.toList
   }
 
-  def getExtraNegative(di: DatasetInfo): Unit = {
-    val datasetName = di.content+'.'+di.datasetName
-    val content_id = di.content+"_id"
-    if (datasetToRule.contains(datasetName)) {
-      val rule = datasetToRule.get(datasetName)
-      val premodIdDwh = spark.read
-        .parquet(exportFrom + "/svcpremoderation_" + di.content + "_reasons")
-        .filter(s"rule_type == '${rule.get}'")
-        .select(content_id)
-
-      val acceptIdDwh = spark.read
-        .parquet(exportFrom + "/svcpremoderation_" + di.content)
-        .filter("resolve_status == 'Approved'")
-        .select(content_id)
-
-      val contentIdDwh = premodIdDwh.join(acceptIdDwh, Seq(content_id), "inner").select(content_id)
-
-      val datasetSize = contentIdDwh.count()
-      val contentDwh = spark.read.parquet(exportFrom + "/ask_" + di.content).withColumnRenamed("id", content_id)
-
-      println(
-        s"""
-           |copying negative dataset:    ${di.datasetName}
-
-           | dataset size:      ${datasetSize}
-
-           | """.stripMargin)
-
-      val timeA = System.currentTimeMillis()
-      val df = contentDwh
-        .join(broadcast(contentIdDwh), Seq(content_id), "inner")
-        .withColumn("decoded_title", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"title")))
-        .withColumn("decoded_body", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"body")))
-        .withColumn("label", lit("__label__legit"))
-        .select(content_id,"label", "decoded_title", "decoded_body")
-
-      println(s"""size of negative: ${df.count()} """)
-
-
-      val basePath = (exportTo + di.content.substring(0,1)
-        + "c-deletionreason-"
-        + di.datasetName.replaceAll("[\\s\\-()]", "")
-        + "/"+ buildNumber )
-
-      val ivyClassifier = "negative"
-
-      parquetWriter(df, basePath, ivyClassifier, datasetSize)
-
-      val timeB = System.currentTimeMillis()
-      println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
-    }
-  }
-
   def exportDatasetContent(di: DatasetInfo): Unit ={
 
-    getExtraNegative(di)
     val content_id = di.content + "_id"
     val contentIdDwh = getContentDwh(di.content)
       .filter(s"reason == '${di.datasetName}'")
@@ -160,8 +100,8 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
                | """.stripMargin)
 
     val timeA = System.currentTimeMillis()
-    val df = contentIdDwh
-      .join(contentDwh, Seq(di.content+"_id"), "inner")
+    val df = contentDwh
+      .join(broadcast(contentIdDwh), Seq(di.content+"_id"), "inner")
       .withColumn("decoded_title", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"title")))
       .withColumn("decoded_body", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"body")))
       .withColumn("label", lit("__label__"+di.datasetName))
@@ -202,7 +142,6 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
     if( tempParquet.count() <= datasetSize) {
       println(s"""
                  | The dataset size is verified, exporting ...
-                 |  Copy from file '${tmpOutputDir.toString}' to '${destOutputDir.toString}'
                  """.stripMargin)
       if (hdfs.exists(destOutputDir)) {
         hdfs.rename(destOutputDir, toDeleteDir)
@@ -221,7 +160,7 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   def main(args: Array[String]) {
     // avoid NPE when writing parquet metadata
     spark.sparkContext.hadoopConfiguration.setBoolean("parquet.enable.summary-metadata", false)
-    config.getString("job.dwh2dataset.export.only") match{
+    config.getString("job.dwh2negative.export.only") match{
       // or just some tables
       case reasonString: String => {
         val datasets  = getWhitelist(reasonString)     // all reasons as positive that should be imported
