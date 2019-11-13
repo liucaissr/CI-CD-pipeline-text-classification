@@ -3,6 +3,7 @@ import net.gutefrage.etl.commons.conf.IgnoreSparkMasterSysProp
 import net.gutefrage.etl.commons.util.Logging
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.functions.broadcast
 import net.gutefrage.etl.commons.conf.SparkConfOps.LoadFromConfig
 import net.gutefrage.service.commons.mysql.jdbc.WeirdString
 import net.gutefrage.data.commons.embeddings.CleanEmbeddings
@@ -10,7 +11,6 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.functions._
 import scala.collection.mutable.ListBuffer
 import scala.util.Properties
-import net.gutefrage.etl.commons.hdfs.ParquetWriter.ParquetWriterConfig
 
 object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   val conf = new SparkConf()
@@ -32,7 +32,7 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   val bytesPerPartition: Long  = 1024L * 1024 * 250 // MB (mind compression ration ~4:1)
   val bytesPerFetchBlock: Long = 1024L * 1024 * 2 // = initial task size
   val minPartitions            = 3
-
+  val hdfs = FileSystem.get(spark.sparkContext.hadoopConfiguration)
   val weirdStringFromDb: String=>String=(str:String)=>{
     try {
       WeirdString.fromDbString(str).toString
@@ -54,7 +54,7 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   /**
    * index running classifier to collect extra negative dataset
    */
-  val datasetToclassifer = Map(
+  val datasetToRule = Map(
     "question.contact-request" -> "ContactRequestQuestion"
   )
 
@@ -69,7 +69,6 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   def getContentDwh(content: String): DataFrame ={
     val contentDwh =  spark.read
       .parquet(exportFrom + "/svc" + content + "_deletion_reason")
-        .filter("created_at > '2019-11-01'")
     contentDwh
   }
 
@@ -92,20 +91,71 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   }
 
   def getExtraNegative(di: DatasetInfo): Unit = {
+    val datasetName = di.content+'.'+di.datasetName
+    val content_id = di.content+"_id"
+    if (datasetToRule.contains(datasetName)) {
+      val rule = datasetToRule.get(datasetName)
+      val premodIdDwh = spark.read
+        .parquet(exportFrom + "/svcpremoderation_" + di.content + "_reasons")
+        .filter(s"rule_type == '${rule.get}'")
+        .select(content_id)
 
+      val acceptIdDwh = spark.read
+        .parquet(exportFrom + "/svcpremoderation_" + di.content)
+        .filter("resolve_status == 'Approved'")
+        .select(content_id)
+
+      val contentIdDwh = premodIdDwh.join(acceptIdDwh, Seq(content_id), "inner").select(content_id)
+
+      val datasetSize = contentIdDwh.count()
+      val contentDwh = spark.read.parquet(exportFrom + "/ask_" + di.content).withColumnRenamed("id", content_id)
+
+      println(
+        s"""
+           |copying negative dataset:    ${di.datasetName}
+
+           | dataset size:      ${datasetSize}
+
+           | """.stripMargin)
+
+      val timeA = System.currentTimeMillis()
+      val df = contentDwh
+        .join(broadcast(contentIdDwh), Seq(content_id), "inner")
+        .withColumn("decoded_title", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"title")))
+        .withColumn("decoded_body", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"body")))
+        .withColumn("label", lit("__label__legit"))
+        .select(content_id,"label", "decoded_title", "decoded_body")
+
+      println(s"""size of negative: ${df.count()} """)
+
+
+      val basePath = (exportTo + di.content.substring(0,1)
+        + "c-deletionreason-"
+        + di.datasetName.replaceAll("[\\s\\-()]", "")
+        + "/"+ buildNumber )
+
+      val ivyClassifier = "negative"
+
+      parquetWriter(df, basePath, ivyClassifier, datasetSize)
+
+      val timeB = System.currentTimeMillis()
+      println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
+    }
   }
 
   def exportDatasetContent(di: DatasetInfo): Unit ={
 
+    getExtraNegative(di)
+    val content_id = di.content + "_id"
     val contentIdDwh = getContentDwh(di.content)
       .filter(s"reason == '${di.datasetName}'")
-      .select("question_id")
+      .select(content_id)
 
     val datasetSize              = contentIdDwh.count()
-    val contentDwh = spark.read.parquet(exportFrom + "/ask_" + di.content).withColumnRenamed("id", di.content+"_id")
+    val contentDwh = spark.read.parquet(exportFrom + "/ask_" + di.content).withColumnRenamed("id", content_id)
 
     println(s"""
-               |copying dataset:    ${di.datasetName}
+               |copying positive dataset:    ${di.datasetName}
                | dataset size:      ${datasetSize}
                | """.stripMargin)
 
@@ -117,28 +167,39 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
       .withColumn("label", lit("__label__"+di.datasetName))
       .select(di.content+"_id","label", "decoded_title", "decoded_body")
 
-    // ivy-repo
-    val basePath = new Path(exportTo + di.content.substring(0,1)
+    val basePath = (exportTo + di.content.substring(0,1)
       + "c-deletionreason-"
       + di.datasetName.replaceAll("[\\s\\-()]", "")
       + "/"+ buildNumber )
 
-    val destDir = "positive/parquet"
-    val tmpDir = "positive/parquet_tmp_dir"
+    val ivyClassifier = "positive"
 
-    val tmpOutputDir = new Path(basePath, tmpDir)
-    val toDeleteDir = new Path(basePath, "positive/to_delete")
-    val destOutputDir = new Path(basePath, destDir)
+    parquetWriter(df, basePath, ivyClassifier, datasetSize)
 
-    val hdfs = FileSystem.get(spark.sparkContext.hadoopConfiguration)
+    val timeB = System.currentTimeMillis()
+    println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
+  }
+
+  def parquetWriter(df: DataFrame, basePath: String , classifier: String, datasetSize: Long): Unit ={
+    // ivy-repo
+    val base = new Path(basePath)
+    val destDir = classifier + "/parquet"
+    val tmpDir = classifier + "/parquet_tmp_dir"
+    val delDir = classifier + "/to_delete"
+
+    val tmpOutputDir = new Path(base, tmpDir)
+    val toDeleteDir = new Path(base, delDir)
+    val destOutputDir = new Path(base, destDir)
 
     df.coalesce(1)
       .write
       .mode("overwrite")
       .parquet(tmpOutputDir.toString)
 
+    val tempParquet = spark.read.parquet(tmpOutputDir.toString)
+
     // varify dataset
-    if( spark.read.parquet(tmpOutputDir.toString).count() <= datasetSize) {
+    if( tempParquet.count() <= datasetSize) {
       println(s"""
                  | The dataset size is verified, exporting ...
                  |  Copy from file '${tmpOutputDir.toString}' to '${destOutputDir.toString}'
@@ -155,8 +216,6 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
     }
     hdfs.delete(toDeleteDir, true)
 
-    val timeB = System.currentTimeMillis()
-    println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
   }
 
   def main(args: Array[String]) {
