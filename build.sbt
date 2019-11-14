@@ -51,9 +51,14 @@ lazy val assemblySettings = AssemblyPlugin.baseAssemblySettings ++ Seq(
 lazy val root = (project in file("."))
   .settings(commonSettings: _*)
   .aggregate(
-    sparkPositive
+    sparkPositive,
+    sparkNegative
   )
 
 lazy val sparkPositive = (project in file("spark-positive"))
+  .settings(commonSettings: _*)
+  .settings(assemblySettings: _*)
+
+lazy val sparkNegative = (project in file("spark-negative"))
   .settings(commonSettings: _*)
   .settings(assemblySettings: _*)
