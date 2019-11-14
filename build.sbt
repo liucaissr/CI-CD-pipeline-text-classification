@@ -1,4 +1,4 @@
-name := "ai-dataset"
+name := "qc-contactrequest"
 import scala.util.Properties
 // Scala versions we build for
 

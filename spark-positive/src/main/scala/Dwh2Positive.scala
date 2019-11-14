@@ -12,12 +12,12 @@ import org.apache.spark.sql.functions._
 import scala.collection.mutable.ListBuffer
 import scala.util.Properties
 
-object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
+object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
   val conf = new SparkConf()
-    .withConfig(ConfigFactory.load(), "job.dwh2dataset")
+    .withConfig(ConfigFactory.load(), "job.dwh2positive")
 
   val spark = SparkSession.builder
-    .appName("dwh2dataset")
+    .appName("dwh2positive")
     .config(conf)
     .getOrCreate()
 
@@ -26,7 +26,7 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
 
   val hdfsHost                 = config.getString("hdfs.host")
   val exportFrom                   = config.getString("job.dwh.mysql")
-  val exportTo                   = config.getString("job.dwh2dataset.target")
+  val exportTo                   = config.getString("job.dwh2positive.target")
   val buildNumber               = Properties.envOrNone("BUILD_NUMBER").getOrElse("1-SNAPSHOT")
 
   val bytesPerPartition: Long  = 1024L * 1024 * 250 // MB (mind compression ration ~4:1)
@@ -221,7 +221,7 @@ object Dwh2Dataset extends IgnoreSparkMasterSysProp with Logging {
   def main(args: Array[String]) {
     // avoid NPE when writing parquet metadata
     spark.sparkContext.hadoopConfiguration.setBoolean("parquet.enable.summary-metadata", false)
-    config.getString("job.dwh2dataset.export.only") match{
+    config.getString("job.dwh2positive.export.only") match{
       // or just some tables
       case reasonString: String => {
         val datasets  = getWhitelist(reasonString)     // all reasons as positive that should be imported
