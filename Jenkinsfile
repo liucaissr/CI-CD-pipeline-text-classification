@@ -43,9 +43,6 @@ pipeline {
         }
     }
     post {
-        /*always {
-            junit '**/target/test-reports/*.xml'
-        }*/
         success {
             slackSend color: 'good',
                       message: "deployed ${JOB_BASE_NAME} ${BUILD_NUMBER} (<${BUILD_URL}|jenkins build>)"
