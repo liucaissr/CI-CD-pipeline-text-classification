@@ -2,7 +2,7 @@ package jobs
 import com.typesafe.config.ConfigFactory
 import net.gutefrage.data.commons.embeddings.CleanEmbeddings
 import net.gutefrage.etl.commons.conf.SparkConfOps.LoadFromConfig
-import net.gutefrage.etl.commons.conf.{DbConfig, IgnoreSparkMasterSysProp}
+import net.gutefrage.etl.commons.conf.IgnoreSparkMasterSysProp
 import net.gutefrage.etl.commons.util.Logging
 import net.gutefrage.service.commons.mysql.jdbc.WeirdString
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -12,6 +12,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Properties
+import util.{DatasetInfo, ExportHelper}
 
 object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
   val conf = new SparkConf()
@@ -25,14 +26,13 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
   import spark.implicits._
   val config = ConfigFactory.load()
 
+  val exportHelper = new ExportHelper(spark, config)
+
+
   val hdfsHost                 = config.getString("hdfs.host")
   val exportFrom                   = config.getString("job.dwh.mysql")
   val exportTo                   = config.getString("job.dwh2positive.target")
   val buildNumber               = Properties.envOrNone("BUILD_NUMBER").getOrElse("1-SNAPSHOT")
-
-  lazy val statDbConfig = DbConfig("mysql.write")
-  val jdbcDatabase = config.getString("mysql.stat.database")
-  val jdbcTable = config.getString("mysql.stat.table")
 
   val bytesPerPartition: Long  = 1024L * 1024 * 250 // MB (mind compression ration ~4:1)
   val bytesPerFetchBlock: Long = 1024L * 1024 * 2 // = initial task size
@@ -141,14 +141,7 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
 
       val ivyClassifier = "negative"
 
-      val outDatasetSize = parquetWriter(df, basePath, ivyClassifier, datasetSize)
-
-      if(outDatasetSize !=0){
-        println(s"""
-                   | Writing stats to lugger
-                 """.stripMargin)
-        statsWriter(di,outDatasetSize, ivyClassifier)
-      }
+      exportHelper.datasetWriter(di ,df, basePath, ivyClassifier, datasetSize)
 
       val timeB = System.currentTimeMillis()
       println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
@@ -186,72 +179,12 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
 
     val ivyClassifier = "positive"
 
-    val outDatasetSize = parquetWriter(df, basePath, ivyClassifier, datasetSize)
+    exportHelper.datasetWriter(di, df, basePath, ivyClassifier, datasetSize)
 
-    if(outDatasetSize !=0){
-      println(s"""
-                 | Writing stats to lugger
-                 """.stripMargin)
-      statsWriter(di,outDatasetSize, ivyClassifier)
-    }
     val timeB = System.currentTimeMillis()
     println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
 
 
-  }
-
-  def statsWriter(di: DatasetInfo, count: Long, ivyClassifier: String): Unit ={
-    val stmt   = statDbConfig.getConnection().createStatement()
-    println(
-      s"""
-         |INSERT INTO ${jdbcDatabase}.${jdbcTable}
-         |(dataset,content,count,application, label, is_validated, build_number)
-         |VALUES ('${di.datasetName}', '${di.content}', ${count}, 'deletion-reason', '${ivyClassifier}', ${true}, '${buildNumber}')
-         |""".stripMargin)
-    stmt.executeUpdate(
-      s"""
-         |INSERT INTO ${jdbcDatabase}.${jdbcTable}
-         |(dataset, content, count, application, label, is_validated, build_number)
-         |VALUES ('${di.datasetName}', '${di.content}', ${count}, 'deletion-reason', '${ivyClassifier}', ${true}, '${buildNumber}')
-         |""".stripMargin)
-    stmt.close()
-  }
-  def parquetWriter(df: DataFrame, basePath: String , classifier: String, datasetSize: Long): Long ={
-    // ivy-repo
-    val base = new Path(basePath)
-    val destDir = classifier + "/parquet"
-    val tmpDir = classifier + "/parquet_tmp_dir"
-    val delDir = classifier + "/to_delete"
-
-    val tmpOutputDir = new Path(base, tmpDir)
-    val toDeleteDir = new Path(base, delDir)
-    val destOutputDir = new Path(base, destDir)
-
-    df.coalesce(1)
-      .write
-      .mode("overwrite")
-      .parquet(tmpOutputDir.toString)
-
-    var tempParquetCount = spark.read.parquet(tmpOutputDir.toString).count()
-
-    // varify dataset
-    if( tempParquetCount <= datasetSize) {
-      println(s"""
-                 | The dataset size is verified, exporting ...
-                 """.stripMargin)
-      if (hdfs.exists(destOutputDir)) {
-        hdfs.rename(destOutputDir, toDeleteDir)
-      }
-      hdfs.rename(tmpOutputDir, destOutputDir)
-    } else {
-      println(s"""
-                 | The dataset size is abnomaly large, stoping ...
-                 """.stripMargin)
-      hdfs.rename(tmpOutputDir, toDeleteDir)
-      tempParquetCount = 0
-    }
-    hdfs.delete(toDeleteDir, true)
-    tempParquetCount
   }
 
   def main(args: Array[String]) {
@@ -274,9 +207,3 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
     spark.stop()
   }
 }
-
-case class DatasetInfo(content: String, datasetName: String) {
-  override def toString: String = content + "." + datasetName
-}
-
-
