@@ -1,14 +1,14 @@
+package jobs
 import com.typesafe.config.ConfigFactory
+import net.gutefrage.data.commons.embeddings.CleanEmbeddings
+import net.gutefrage.etl.commons.conf.SparkConfOps.LoadFromConfig
 import net.gutefrage.etl.commons.conf.{DbConfig, IgnoreSparkMasterSysProp}
 import net.gutefrage.etl.commons.util.Logging
-import org.apache.spark.SparkConf
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.sql.functions.broadcast
-import net.gutefrage.etl.commons.conf.SparkConfOps.LoadFromConfig
 import net.gutefrage.service.commons.mysql.jdbc.WeirdString
-import net.gutefrage.data.commons.embeddings.CleanEmbeddings
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.spark.sql.functions._
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.functions.{broadcast, _}
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Properties

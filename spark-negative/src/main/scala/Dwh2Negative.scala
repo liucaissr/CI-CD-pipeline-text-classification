@@ -9,6 +9,7 @@ import net.gutefrage.service.commons.mysql.jdbc.WeirdString
 import net.gutefrage.data.commons.embeddings.CleanEmbeddings
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.functions._
+
 import scala.collection.mutable.ListBuffer
 import scala.util.Properties
 import org.apache.spark.sql.expressions.Window
