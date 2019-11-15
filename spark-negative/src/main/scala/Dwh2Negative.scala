@@ -84,7 +84,7 @@ object Dwh2Negative extends IgnoreSparkMasterSysProp with Logging {
 
   //todo: refactor to object? or ...
   def exportDatasetContent(di: DatasetInfo): Unit ={
-
+    //todo: add broadcast to speed up the query
 
     if(di.datasetName == "alexa"){
 
