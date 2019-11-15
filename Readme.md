@@ -9,13 +9,9 @@ https://docs.microsoft.com/en-us/azure/machine-learning/team-data-science-proces
     
 ## Data Acquisition and Understanding
 
-### Project spark-postive
+### Project spark-dataset
 - It exports dataset related to contactrequest questions to hdfs directory:
 http://hue.endor.gutefrage.net/hue/filebrowser/view=/user/hue#/data-projects/dataset/ivy-repo/releases/net.gutefrage.data/qc-deletionreason-contactrequest
-- start job: ```spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class Dwh2Positive spark-positive-assembly-1-SNAPSHOT.jar```
-
-### Project spark-negative
-- It exports dataset alexa-like questions to hdfs directory:
-http://hue.endor.gutefrage.net/hue/filebrowser/view=/user/hue#/data-projects/dataset/ivy-repo/releases/net.gutefrage.data/qc-alexa
-- start job: ```spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class Dwh2Negative spark-negative-assembly-1-SNAPSHOT.jar```
+- start positive job: ```spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Positive spark-dataset-assembly-1-SNAPSHOT.jar```
+- start negative job: ```spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Negative spark-dataset-assembly-1-SNAPSHOT.jar```
 
