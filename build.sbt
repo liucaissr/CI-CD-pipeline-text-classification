@@ -7,7 +7,7 @@ addCommandAlias("scalafmtFormatAll", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("scalafmtValidateAll", "; scalafmtCheckAll; scalafmtSbtCheck")
 
 addCommandAlias("validate", "; scalafmtValidateAll; test")
-addCommandAlias("jenkinsTask", "; clean; validate; assembly; publishHdfs")
+addCommandAlias("jenkinsTask", "; clean; validate; assembly")
 
 lazy val commonSettings = Seq(
   organization := "net.gutefrage.data",
