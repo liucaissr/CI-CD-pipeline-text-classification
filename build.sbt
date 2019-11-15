@@ -1,13 +1,12 @@
 name := "qc-contactrequest"
 import scala.util.Properties
-// Scala versions we build for
 
 // scalafmt
 addCommandAlias("scalafmtFormatAll", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("scalafmtValidateAll", "; scalafmtCheckAll; scalafmtSbtCheck")
 
 addCommandAlias("validate", "; scalafmtValidateAll; test")
-addCommandAlias("jenkinsTask", "; clean; validate; assembly")
+addCommandAlias("jenkinsTask", "; clean; validate; assembly; publishHdfs")
 
 lazy val commonSettings = Seq(
   organization := "net.gutefrage.data",
@@ -26,7 +25,10 @@ lazy val commonSettings = Seq(
     "net.gutefrage"     %% "weird-string"     % "1.11",
     "net.gutefrage.etl" %% "spark-commons"    % "4.4",
     "net.gutefrage"     %% "clean-embeddings" % "1.14"
-  )
+  ),
+  publishHdfsBucket := "data",
+  publishHdfsService := "qc-contactrequest",
+  publishHdfsBuild := version.value
 )
 lazy val assemblySettings = AssemblyPlugin.baseAssemblySettings ++ Seq(
   assemblyMergeStrategy in assembly := {
@@ -53,6 +55,7 @@ lazy val assemblySettings = AssemblyPlugin.baseAssemblySettings ++ Seq(
 
 lazy val root = (project in file("."))
   .settings(commonSettings: _*)
+  .enablePlugins(PublishHdfsPlugin, PublishScpPlugin)
   .aggregate(
     sparkDataset
   )
