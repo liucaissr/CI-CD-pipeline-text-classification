@@ -1,11 +1,9 @@
 package util
 
 import com.typesafe.config.Config
-import jobs.Dwh2Positive.hdfs
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import net.gutefrage.etl.commons.conf.DbConfig
-
 import scala.util.Properties
 
 class ExportHelper(spark: SparkSession, config: Config) {
@@ -16,6 +14,7 @@ class ExportHelper(spark: SparkSession, config: Config) {
   val jdbcTable    = config.getString("mysql.stat.table")
 
   val buildNumber = Properties.envOrNone("BUILD_NUMBER").getOrElse("1-SNAPSHOT")
+  val hdfs                     = FileSystem.get(spark.sparkContext.hadoopConfiguration)
 
   def datasetWriter(di: DatasetInfo, df: DataFrame, basePath: String, classifier: String, datasetSize: Long): Unit = {
     // ivy-repo

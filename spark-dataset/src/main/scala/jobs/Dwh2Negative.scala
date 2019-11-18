@@ -86,7 +86,6 @@ object Dwh2Negative extends IgnoreSparkMasterSysProp with Logging {
         .drop("body")
         .withColumn("decoded_title", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf(col("title"))))
         .drop("title")
-      resultQuestions.count()
 
       spark.read.parquet(exportFrom + "/ask_answer").createOrReplaceTempView("answerTable")
       val answerDF = spark.sql("select id, question_id, body from answerTable where is_deleted = 0")

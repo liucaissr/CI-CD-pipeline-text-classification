@@ -69,16 +69,9 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
       .toSet
   }
 
-  //todo: refactor to object? or ...
-  def getContentDwh(content: String): DataFrame = {
-    val contentDwh = spark.read
-      .parquet(exportFrom + "/svc" + content + "_deletion_reason")
-    contentDwh
-  }
-
   def getDatasetInfo(content: String): List[DatasetInfo] = {
-    val contentDwh = getContentDwh(content)
-    val contentReasons = contentDwh
+    val contentReasons = spark.read
+      .parquet(exportFrom + "/svc" + content + "_deletion_reason")
       .select("reason")
       .distinct()
       .map(row => row.mkString(""))
@@ -99,88 +92,90 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
     val content_id  = di.content + "_id"
     if (datasetToRule.contains(datasetName)) {
       val rule = datasetToRule.get(datasetName)
-      val premodIdDwh = spark.read
-        .parquet(exportFrom + "/svcpremoderation_" + di.content + "_reasons")
-        .filter(s"rule_type == '${rule.get}'")
-        .select(content_id)
+      if(di.content == "question") {
+        val premodIdDwh = spark.read
+          .parquet(exportFrom + "/svcpremoderation_question_reasons")
+          .filter(s"rule_type == '${rule.get}'")
+          .select(content_id)
 
-      val acceptIdDwh = spark.read
-        .parquet(exportFrom + "/svcpremoderation_" + di.content)
-        .filter("resolve_status == 'Approved'")
-        .select(content_id)
+        val acceptIdDwh = spark.read
+          .parquet(exportFrom + "/svcpremoderation_question")
+          .filter("resolve_status == 'Approved'")
+          .select("question_id")
 
-      val contentIdDwh = premodIdDwh.join(acceptIdDwh, Seq(content_id), "inner").select(content_id)
+        val contentIdDwh = acceptIdDwh.join(premodIdDwh, Seq("question_id"), "inner").select("question_id")
 
-      val datasetSize = contentIdDwh.count()
-      val contentDwh  = spark.read.parquet(exportFrom + "/ask_" + di.content).withColumnRenamed("id", content_id)
+        val datasetSize = contentIdDwh.count()
+        val contentDwh = spark.read.parquet(exportFrom + "/ask_question").select("id", "title", "body").withColumnRenamed("id", "question_id")
 
-      println(s"""
-           |copying negative dataset:    ${di.datasetName}
+        println(
+          s"""
+             |copying negative dataset:    ${di.datasetName}
 
-           | dataset size:      ${datasetSize}
+             | dataset size:      ${datasetSize}
 
-           | """.stripMargin)
+             | """.stripMargin)
 
-      val timeA = System.currentTimeMillis()
-      val df = contentDwh
-        .join(broadcast(contentIdDwh), Seq(content_id), "inner")
-        .withColumn("decoded_title", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"title")))
-        .withColumn("decoded_body", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"body")))
-        .withColumn("label", lit("__label__legit"))
-        .select(content_id, "label", "decoded_title", "decoded_body")
+        val timeA = System.currentTimeMillis()
+        val df = contentDwh
+          .join(broadcast(contentIdDwh), Seq("question_id"), "inner")
+          .withColumn("decoded_title", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"title")))
+          .withColumn("decoded_body", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"body")))
+          .withColumn("label", lit("__label__legit"))
+          .select("question_id", "label", "decoded_title", "decoded_body")
 
-      println(s"""size of negative: ${df.count()} """)
 
-      val basePath = (exportTo + di.content.substring(0, 1)
-        + "c-deletionreason-"
-        + di.datasetName.replaceAll("[\\s\\-()]", "")
-        + "/" + buildNumber)
+        val basePath = (exportTo + "qc-deletionreason-"
+          + di.datasetName.replaceAll("[\\s\\-()]", "")
+          + "/" + buildNumber)
 
-      val ivyClassifier = "negative"
+        val ivyClassifier = "negative"
 
-      exportHelper.datasetWriter(di, df, basePath, ivyClassifier, datasetSize)
-
-      val timeB = System.currentTimeMillis()
-      println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
+        exportHelper.datasetWriter(di, df, basePath, ivyClassifier, datasetSize)
+        val timeB = System.currentTimeMillis()
+        println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
+      }
     }
   }
 
   def exportDatasetContent(di: DatasetInfo): Unit = {
 
     getExtraNegative(di)
-    val content_id = di.content + "_id"
-    val contentIdDwh = getContentDwh(di.content)
-      .filter(s"reason == '${di.datasetName}'")
-      .select(content_id)
+    if(di.content == "question"){
+      val contentIdDwh = spark.read
+        .parquet(exportFrom + "/svcquestion_deletion_reason")
+        .filter(s"reason == '${di.datasetName}'")
+        .select("question_id")
 
-    val datasetSize = contentIdDwh.count()
-    val contentDwh  = spark.read.parquet(exportFrom + "/ask_" + di.content).withColumnRenamed("id", content_id)
+      val datasetSize = contentIdDwh.count()
 
-    println(s"""
-               |copying positive dataset:    ${di.datasetName}
-               | dataset size:      ${datasetSize}
-               | """.stripMargin)
+      println(s"""
+                 |copying positive dataset:    ${di.datasetName}
+                 | dataset size:      ${datasetSize}
+                 | """.stripMargin)
 
-    val timeA = System.currentTimeMillis()
-    val df = contentDwh
-      .join(broadcast(contentIdDwh), Seq(di.content + "_id"), "inner")
-      .withColumn("decoded_title", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"title")))
-      .withColumn("decoded_body", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"body")))
-      .withColumn("label", lit("__label__" + di.datasetName))
-      .select(di.content + "_id", "label", "decoded_title", "decoded_body")
+      spark.read.parquet(exportFrom + "/ask_question").createOrReplaceTempView("questionTable")
+      val contentDwh  = spark.sql("select id as question_id, title, body from questionTable")
 
-    val basePath = (exportTo + di.content.substring(0, 1)
-      + "c-deletionreason-"
-      + di.datasetName.replaceAll("[\\s\\-()]", "")
-      + "/" + buildNumber)
+      val timeA = System.currentTimeMillis()
+      val df = contentDwh
+        .join(broadcast(contentIdDwh), Seq("question_id"), "inner")
+        .withColumn("decoded_title", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"title")))
+        .withColumn("decoded_body", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"body")))
+        .withColumn("label", lit("__label__" + di.datasetName))
+        .select("question_id", "label", "decoded_title", "decoded_body")
 
-    val ivyClassifier = "positive"
+      val basePath = (exportTo + "qc-deletionreason-"
+        + di.datasetName.replaceAll("[\\s\\-()]", "")
+        + "/" + buildNumber)
 
-    exportHelper.datasetWriter(di, df, basePath, ivyClassifier, datasetSize)
+      val ivyClassifier = "positive"
 
-    val timeB = System.currentTimeMillis()
-    println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
+      exportHelper.datasetWriter(di, df, basePath, ivyClassifier, datasetSize)
 
+      val timeB = System.currentTimeMillis()
+      println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
+    }
   }
 
   def main(args: Array[String]) {
