@@ -36,8 +36,9 @@ pipeline {
                         withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}"]) {
                             echo "Create dataset for build number ${BUILD_NUMBER}"
                             sh '''
-                                spark-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Positive /target/scala-2.11/latest.jar
-                                spark-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Negative /target/scala-2.11/latest.jar
+                                mv spark-2* spark
+                                ./spark/bin/spark-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Positive /target/scala-2.11/latest.jar
+                                ./spark/bin/spark-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Negative /target/scala-2.11/latest.jar
                             '''
                         }
                     }
