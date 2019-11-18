@@ -35,12 +35,12 @@ pipeline {
                         // override the current BUILD_NUMBER with the contents of the .build_number file
                         withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}"]) {
                             echo "Create dataset for build number ${BUILD_NUMBER}"
-                            sh '''
-                                wget http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz
-                                tar -zxf spark-cdh5_2.4.3-production.tgz
-                                mv spark-2* spark
-                                ./spark/bin/spark-submit --master yarn --deploy-mode client --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --class jobs.Dwh2Positive /target/scala-2.11/latest.jar
-                            '''
+//                             sh '''
+//                                 wget http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz
+//                                 tar -zxf spark-cdh5_2.4.3-production.tgz
+//                                 mv spark-2* spark
+//                                 ./spark/bin/spark-submit --master yarn --deploy-mode client --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --class jobs.Dwh2Positive /target/scala-2.11/latest.jar
+//                             '''
                         }
                     }
                 }

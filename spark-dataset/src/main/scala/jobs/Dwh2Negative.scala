@@ -70,12 +70,41 @@ object Dwh2Negative extends IgnoreSparkMasterSysProp with Logging {
       .toSet
   }
 
+  def getExtraNegative(di: DatasetInfo): DataFrame = {
+
+    val contentIdDwh = spark.read
+      .parquet(exportFrom + "/svcpremoderation_question")
+      .filter("resolve_status == 'Approved'")
+      .select("question_id")
+
+    val datasetSize = contentIdDwh.count()
+    val contentDwh = spark.read
+      .parquet(exportFrom + "/ask_question")
+      .filter("is_deleted == 0")
+      .select("id", "title", "body")
+      .withColumnRenamed("id", "question_id")
+
+    println(s"""
+               |copying negative dataset:    ${di.datasetName}
+
+               | dataset size:      ${datasetSize}
+
+               | """.stripMargin)
+
+    val df = contentDwh
+      .join(broadcast(contentIdDwh), Seq("question_id"), "inner")
+      .withColumn("decoded_title", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"title")))
+      .withColumn("decoded_body", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"body")))
+      .withColumn("label", lit("__label__legit"))
+      .select("question_id", "label", "decoded_title", "decoded_body")
+    df
+  }
+
   //todo: refactor to object? or ...
   def exportDatasetContent(di: DatasetInfo): Unit = {
     //todo: add broadcast to speed up the query
-
-    if (di.datasetName == "alexa") {
-
+    if (di.datasetName == "notdeleted") {
+      val extraDf = getExtraNegative(di)
       spark.read.parquet(exportFrom + "/ask_question").createOrReplaceTempView("questionTable")
       val questionDF = spark.sql(
         "select id, stripped_title, title, body, created_at from questionTable where is_deleted = 0 and created_at > '2019-01-01'"
@@ -169,27 +198,27 @@ object Dwh2Negative extends IgnoreSparkMasterSysProp with Logging {
 
       // Filter
       val filteredResult = result.withColumn("rank", rank.over(w)).where($"rank" <= 3)
-      val df = filteredResult
+      val alexaDf = filteredResult
         .withColumn("label", lit("__label__legit"))
-        .select("label", "id", "decoded_title", "decoded_body", "created_at")
+        .select("label", "id", "decoded_title", "decoded_body")
         .withColumnRenamed("id", "question_id")
         .distinct
 
+      val df = alexaDf.union(extraDf).distinct
+
       val datasetSize = df.count()
+
       println(s"""
                  | dataset size:      ${datasetSize}
                  | """.stripMargin)
 
       val timeA = System.currentTimeMillis()
 
-      val basePath = (exportTo + di.content.substring(0, 1)
-        + "c-"
+      val basePath = (exportTo + "qc-"
         + di.datasetName.replaceAll("[\\s\\-()]", "")
         + "/" + buildNumber)
 
-      val ivyClassifier = "negative"
-
-      exportHelper.datasetWriter(di, df, basePath, ivyClassifier, datasetSize)
+      exportHelper.datasetWriter(di, df, basePath, datasetSize)
 
       val timeB = System.currentTimeMillis()
       println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
@@ -206,44 +235,6 @@ object Dwh2Negative extends IgnoreSparkMasterSysProp with Logging {
       dataset.split('.').last
     )
     datasets.toList
-  }
-
-  def parquetWriter(df: DataFrame, basePath: String, classifier: String, datasetSize: Long): Long = {
-    // ivy-repo
-    val base    = new Path(basePath)
-    val destDir = classifier + "/parquet"
-    val tmpDir  = classifier + "/parquet_tmp_dir"
-    val delDir  = classifier + "/to_delete"
-
-    val tmpOutputDir  = new Path(base, tmpDir)
-    val toDeleteDir   = new Path(base, delDir)
-    val destOutputDir = new Path(base, destDir)
-
-    df.coalesce(1)
-      .write
-      .mode("overwrite")
-      .parquet(tmpOutputDir.toString)
-
-    var tempParquetCount = spark.read.parquet(tmpOutputDir.toString).count()
-
-    // varify dataset
-    if (tempParquetCount <= datasetSize) {
-      println(s"""
-                 | The dataset size is verified, exporting ...
-                 """.stripMargin)
-      if (hdfs.exists(destOutputDir)) {
-        hdfs.rename(destOutputDir, toDeleteDir)
-      }
-      hdfs.rename(tmpOutputDir, destOutputDir)
-    } else {
-      println(s"""
-                 | The dataset size is abnomaly large, stoping ...
-                 """.stripMargin)
-      hdfs.rename(tmpOutputDir, toDeleteDir)
-      tempParquetCount = 0
-    }
-    hdfs.delete(toDeleteDir, true)
-    tempParquetCount
   }
 
   def main(args: Array[String]) {

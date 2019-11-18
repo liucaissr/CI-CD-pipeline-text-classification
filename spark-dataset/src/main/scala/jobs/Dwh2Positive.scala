@@ -87,61 +87,8 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
     datasets.toList
   }
 
-  def getExtraNegative(di: DatasetInfo): Unit = {
-    val datasetName = di.content + '.' + di.datasetName
-    val content_id  = di.content + "_id"
-    if (datasetToRule.contains(datasetName)) {
-      val rule = datasetToRule.get(datasetName)
-      if (di.content == "question") {
-        val premodIdDwh = spark.read
-          .parquet(exportFrom + "/svcpremoderation_question_reasons")
-          .filter(s"rule_type == '${rule.get}'")
-          .select(content_id)
-
-        val acceptIdDwh = spark.read
-          .parquet(exportFrom + "/svcpremoderation_question")
-          .filter("resolve_status == 'Approved'")
-          .select("question_id")
-
-        val contentIdDwh = acceptIdDwh.join(premodIdDwh, Seq("question_id"), "inner").select("question_id")
-
-        val datasetSize = contentIdDwh.count()
-        val contentDwh = spark.read
-          .parquet(exportFrom + "/ask_question")
-          .select("id", "title", "body")
-          .withColumnRenamed("id", "question_id")
-
-        println(s"""
-             |copying negative dataset:    ${di.datasetName}
-
-             | dataset size:      ${datasetSize}
-
-             | """.stripMargin)
-
-        val timeA = System.currentTimeMillis()
-        val df = contentDwh
-          .join(broadcast(contentIdDwh), Seq("question_id"), "inner")
-          .withColumn("decoded_title", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"title")))
-          .withColumn("decoded_body", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"body")))
-          .withColumn("label", lit("__label__legit"))
-          .select("question_id", "label", "decoded_title", "decoded_body")
-
-        val basePath = (exportTo + "qc-deletionreason-"
-          + di.datasetName.replaceAll("[\\s\\-()]", "")
-          + "/" + buildNumber)
-
-        val ivyClassifier = "negative"
-
-        exportHelper.datasetWriter(di, df, basePath, ivyClassifier, datasetSize)
-        val timeB = System.currentTimeMillis()
-        println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")
-      }
-    }
-  }
-
   def exportDatasetContent(di: DatasetInfo): Unit = {
 
-    getExtraNegative(di)
     if (di.content == "question") {
       val contentIdDwh = spark.read
         .parquet(exportFrom + "/svcquestion_deletion_reason")
@@ -170,9 +117,7 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
         + di.datasetName.replaceAll("[\\s\\-()]", "")
         + "/" + buildNumber)
 
-      val ivyClassifier = "positive"
-
-      exportHelper.datasetWriter(di, df, basePath, ivyClassifier, datasetSize)
+      exportHelper.datasetWriter(di, df, basePath, datasetSize)
 
       val timeB = System.currentTimeMillis()
       println("\n" + di + " duration: " + ((timeB - timeA) / 1000) + "s")

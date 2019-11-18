@@ -16,12 +16,12 @@ class ExportHelper(spark: SparkSession, config: Config) {
   val buildNumber = Properties.envOrNone("BUILD_NUMBER").getOrElse("1-SNAPSHOT")
   val hdfs        = FileSystem.get(spark.sparkContext.hadoopConfiguration)
 
-  def datasetWriter(di: DatasetInfo, df: DataFrame, basePath: String, classifier: String, datasetSize: Long): Unit = {
+  def datasetWriter(di: DatasetInfo, df: DataFrame, basePath: String, datasetSize: Long): Unit = {
     // ivy-repo
     val base    = new Path(basePath)
-    val destDir = classifier + "/parquet"
-    val tmpDir  = classifier + "/parquet_tmp_dir"
-    val delDir  = classifier + "/to_delete"
+    val destDir = "parquet"
+    val tmpDir  = "parquet_tmp_dir"
+    val delDir  = "to_delete"
 
     val tmpOutputDir  = new Path(base, tmpDir)
     val toDeleteDir   = new Path(base, delDir)
@@ -35,7 +35,7 @@ class ExportHelper(spark: SparkSession, config: Config) {
     val tempParquetCount = spark.read.parquet(tmpOutputDir.toString).count()
 
     // varify dataset
-    if ((tempParquetCount <= datasetSize) && (statsReader(di, tempParquetCount, classifier))) {
+    if ((tempParquetCount <= datasetSize) && (statsReader(di, tempParquetCount))) {
       println(s"""
                  | The dataset size is verified, exporting ...
                  """.stripMargin)
@@ -43,7 +43,7 @@ class ExportHelper(spark: SparkSession, config: Config) {
         hdfs.rename(destOutputDir, toDeleteDir)
       }
       hdfs.rename(tmpOutputDir, destOutputDir)
-      statsWriter(di, tempParquetCount, classifier)
+      statsWriter(di, tempParquetCount)
     } else {
       println(s"""
                  | The dataset size is abnomaly large, stoping ...
@@ -54,32 +54,32 @@ class ExportHelper(spark: SparkSession, config: Config) {
     hdfs.delete(toDeleteDir, true)
   }
 
-  def statsWriter(di: DatasetInfo, count: Long, ivyClassifier: String): Unit = {
+  def statsWriter(di: DatasetInfo, count: Long): Unit = {
     val stmt = statDbConfig.getConnection().createStatement()
     println(s"""
          |INSERT INTO ${jdbcDatabase}.${jdbcTable}
-         |(dataset,content,count,application, label, is_validated, build_number)
-         |VALUES ('${di.datasetName}', '${di.content}', ${count}, 'deletion-reason', '${ivyClassifier}', ${true}, '${buildNumber}')
+         |(dataset,content, count, service, is_validated, build_number)
+         |VALUES ('${di.datasetName}', '${di.content}', ${count}, 'deletion-reason', ${true}, '${buildNumber}')
          |""".stripMargin)
     stmt.executeUpdate(s"""
          |INSERT INTO ${jdbcDatabase}.${jdbcTable}
-         |(dataset, content, count, application, label, is_validated, build_number)
-         |VALUES ('${di.datasetName}', '${di.content}', ${count}, 'deletion-reason', '${ivyClassifier}', ${true}, '${buildNumber}')
+         |(dataset, content, count, service, is_validated, build_number)
+         |VALUES ('${di.datasetName}', '${di.content}', ${count}, 'deletion-reason', ${true}, '${buildNumber}')
          |""".stripMargin)
     stmt.close()
   }
 
-  def statsReader(di: DatasetInfo, count: Long, ivyClassifier: String): Boolean = {
+  def statsReader(di: DatasetInfo, count: Long): Boolean = {
     val stmt = statDbConfig.getConnection().createStatement()
     //todo: change col application to svc
     println(s"""
          |Select count, created_at from ${jdbcDatabase}.${jdbcTable}
-         |where (dataset = '${di.datasetName}' and content = '${di.content}' and application = 'deletion-reason' and label = '${ivyClassifier}')
+         |where (dataset = '${di.datasetName}' and content = '${di.content}' and service = 'deletion-reason')
          |order by created_at desc
          |""".stripMargin)
     val result    = stmt.executeQuery(s"""
          |Select count, created_at from ${jdbcDatabase}.${jdbcTable}
-         | where (dataset = '${di.datasetName}' and content = '${di.content}' and application = 'deletion-reason' and label = '${ivyClassifier}')
+         | where (dataset = '${di.datasetName}' and content = '${di.content}' and service = 'deletion-reason')
          | order by created_at desc
          |""".stripMargin)
     var last_size = 0
