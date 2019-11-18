@@ -14,7 +14,7 @@ class ExportHelper(spark: SparkSession, config: Config) {
   val jdbcTable    = config.getString("mysql.stat.table")
 
   val buildNumber = Properties.envOrNone("BUILD_NUMBER").getOrElse("1-SNAPSHOT")
-  val hdfs                     = FileSystem.get(spark.sparkContext.hadoopConfiguration)
+  val hdfs        = FileSystem.get(spark.sparkContext.hadoopConfiguration)
 
   def datasetWriter(di: DatasetInfo, df: DataFrame, basePath: String, classifier: String, datasetSize: Long): Unit = {
     // ivy-repo

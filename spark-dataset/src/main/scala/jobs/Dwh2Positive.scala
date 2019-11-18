@@ -92,7 +92,7 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
     val content_id  = di.content + "_id"
     if (datasetToRule.contains(datasetName)) {
       val rule = datasetToRule.get(datasetName)
-      if(di.content == "question") {
+      if (di.content == "question") {
         val premodIdDwh = spark.read
           .parquet(exportFrom + "/svcpremoderation_question_reasons")
           .filter(s"rule_type == '${rule.get}'")
@@ -106,10 +106,12 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
         val contentIdDwh = acceptIdDwh.join(premodIdDwh, Seq("question_id"), "inner").select("question_id")
 
         val datasetSize = contentIdDwh.count()
-        val contentDwh = spark.read.parquet(exportFrom + "/ask_question").select("id", "title", "body").withColumnRenamed("id", "question_id")
+        val contentDwh = spark.read
+          .parquet(exportFrom + "/ask_question")
+          .select("id", "title", "body")
+          .withColumnRenamed("id", "question_id")
 
-        println(
-          s"""
+        println(s"""
              |copying negative dataset:    ${di.datasetName}
 
              | dataset size:      ${datasetSize}
@@ -123,7 +125,6 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
           .withColumn("decoded_body", cleanTextForEmbeddingsUdf(weirdStringFromDbUdf($"body")))
           .withColumn("label", lit("__label__legit"))
           .select("question_id", "label", "decoded_title", "decoded_body")
-
 
         val basePath = (exportTo + "qc-deletionreason-"
           + di.datasetName.replaceAll("[\\s\\-()]", "")
@@ -141,7 +142,7 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
   def exportDatasetContent(di: DatasetInfo): Unit = {
 
     getExtraNegative(di)
-    if(di.content == "question"){
+    if (di.content == "question") {
       val contentIdDwh = spark.read
         .parquet(exportFrom + "/svcquestion_deletion_reason")
         .filter(s"reason == '${di.datasetName}'")
@@ -155,7 +156,7 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
                  | """.stripMargin)
 
       spark.read.parquet(exportFrom + "/ask_question").createOrReplaceTempView("questionTable")
-      val contentDwh  = spark.sql("select id as question_id, title, body from questionTable")
+      val contentDwh = spark.sql("select id as question_id, title, body from questionTable")
 
       val timeA = System.currentTimeMillis()
       val df = contentDwh
