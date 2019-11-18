@@ -6,12 +6,12 @@ addCommandAlias("scalafmtFormatAll", "; scalafmtAll; scalafmtSbt")
 addCommandAlias("scalafmtValidateAll", "; scalafmtCheckAll; scalafmtSbtCheck")
 
 addCommandAlias("validate", "; scalafmtValidateAll; test")
-addCommandAlias("jenkinsTask", "; clean; validate; assembly; publishHdfs")
+addCommandAlias("jenkinsTask", "; clean; validate; publishHdfs")
 
 lazy val commonSettings = Seq(
   organization := "net.gutefrage.data",
   scalaVersion := "2.11.8",
-  version := Properties.envOrNone("BUILD_NUMBER").map(build => s"1.0.$build").getOrElse("1-SNAPSHOT"),
+  version := Properties.envOrNone("BUILD_NUMBER").map(build => s"1.$build").getOrElse("1-SNAPSHOT"),
   resolvers += Resolver.sonatypeRepo("releases"),
   resolvers += ("Gutefrage Release Repo" at "http://artifacts.endor.gutefrage.net/content/groups/public")
     .withAllowInsecureProtocol(true),
