@@ -35,7 +35,10 @@ pipeline {
                         // override the current BUILD_NUMBER with the contents of the .build_number file
                         withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}"]) {
                             echo "Create dataset for build number ${BUILD_NUMBER}"
-                            //sh "sbt deployProductionAngmar"
+                            sh '''
+                                spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Positive /target/scala-2.11/latest.jar
+                                spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Negative /target/scala-2.11/latest.jar
+                            '''
                         }
                     }
                 }
