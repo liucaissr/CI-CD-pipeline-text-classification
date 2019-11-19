@@ -40,6 +40,8 @@ pipeline {
                         withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}"]) {
                             echo "Create dataset for build number ${BUILD_NUMBER}"
                             sh '''
+                                echo $JAVA_HOME
+                                echo $PATH
                                 wget http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz
                                 tar -zxf spark-cdh5_2.4.3-production.tgz
                                 mv spark-2* spark
