@@ -25,9 +25,11 @@ pipeline {
         stage('Build & Publish') {
             steps {
                sh '''
-               echo $JAVA_HOME
                echo $PATH
                chmod -R 755 $JAVA_HOME
+               chmod -R 755 $JAVA_HOME/jdk1.8.0_172/bin
+               ls $JAVA_HOME
+               java -version
                sbt jenkinsTask
                '''
                 // write the BUILD_NUMBER into a file and stash it
@@ -48,6 +50,9 @@ pipeline {
                                 wget http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz
                                 tar -zxf spark-cdh5_2.4.3-production.tgz
                                 mv -vn spark-2* spark
+                                export JAVA_HOME=${JAVA_HOME}/jdk1.8.0_172
+                                export PATH=$JAVA_HOME/bin:$PATH
+                                echo $JAVA_HOME
                                 ./spark/bin/spark-submit --master yarn --deploy-mode cluster --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --class jobs.Dwh2Positive /target/scala-2.11/latest.jar
                             '''
                         }
