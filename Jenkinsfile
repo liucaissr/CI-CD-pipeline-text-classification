@@ -24,7 +24,12 @@ pipeline {
     stages {
         stage('Build & Publish') {
             steps {
-               sh "sbt jenkinsTask"
+               sh '''
+               echo $JAVA_HOME
+               echo $PATH
+               chmod a+x java
+               sbt jenkinsTask
+               '''
                 // write the BUILD_NUMBER into a file and stash it
                 writeFile encoding: 'utf-8', file: '.pipeline.build_number', text: "$BUILD_NUMBER"
                 stash includes: '.pipeline.*', name: 'pipeline'
@@ -40,8 +45,6 @@ pipeline {
                         withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}"]) {
                             echo "Create dataset for build number ${BUILD_NUMBER}"
                             sh '''
-                                echo $JAVA_HOME
-                                echo $PATH
                                 wget http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz
                                 tar -zxf spark-cdh5_2.4.3-production.tgz
                                 mv spark-2* spark
