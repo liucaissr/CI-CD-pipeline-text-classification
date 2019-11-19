@@ -44,6 +44,7 @@ class ExportHelper(spark: SparkSession, config: Config) {
       }
       hdfs.rename(tmpOutputDir, destOutputDir)
       statsWriter(di, tempParquetCount)
+      //todo specify file name but not just path
     } else {
       println(s"""
                  | The dataset size is abnomaly large, stoping ...
@@ -71,7 +72,6 @@ class ExportHelper(spark: SparkSession, config: Config) {
 
   def statsReader(di: DatasetInfo, count: Long): Boolean = {
     val stmt = statDbConfig.getConnection().createStatement()
-    //todo: change col application to svc
     println(s"""
          |Select count, created_at from ${jdbcDatabase}.${jdbcTable}
          |where (dataset = '${di.datasetName}' and content = '${di.content}' and service = 'deletion-reason')
