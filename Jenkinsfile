@@ -3,11 +3,15 @@ pipeline {
 
     environment {
         CI = "jenkins"
-        JAVA_HOME = "${tool 'jdk1.8.0_172'}"
+        JAVA_OPTS = "-Xmx2g"
         // SBT configuration
-        SBT_OPTS = "-Xms1g -Xmx2g"
-        // requires an sbt installation named sbt-1.3.3
-        PATH = "${JAVA_HOME}/bin:${tool name: 'sbt-1.3.3', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'}/bin/:${PATH}"
+        SBT_OPTS = "-Xms2g -Xmx6g"
+        // requires an sbt installation named sbt-1.2.7
+        PATH = "${tool name: 'sbt-1.2.7', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'}/bin/:${PATH}"
+    }
+
+    tools {
+        jdk 'jdk1.8.0_172'
     }
 
     options {
