@@ -42,13 +42,13 @@ pipeline {
                         withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}"]) {
                             echo "Create dataset for build number ${BUILD_NUMBER}"
                             sh '''
-                                wget http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz
+                                wget -O http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz
                                 tar -zxf spark-cdh5_2.4.3-production.tgz
                                 mv -vn spark-2* spark
                                 export JAVA_HOME=${JAVA_HOME}/jdk1.8.0_172
                                 export PATH=$JAVA_HOME/bin:$PATH
                                 echo $JAVA_HOME
-                                ./spark/bin/spark-submit --master yarn --deploy-mode client  --driver-memory 4g --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --driver-java-options "-Dconfig.resource=application.conf" --class jobs.Dwh2Positive /var/lib/jenkins/workspace/Data/qc-contactrequest/spark-dataset/target/scala-2.11/spark-dataset-assembly-1.${BUILD_NUMBER}.jar
+                                ./spark/bin/spark-submit --master yarn --deploy-mode cluster  --driver-memory 4g --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --driver-java-options "-Dconfig.resource=application.conf" --class jobs.Dwh2Positive /var/lib/jenkins/workspace/Data/qc-contactrequest/spark-dataset/target/scala-2.11/spark-dataset-assembly-1.${BUILD_NUMBER}.jar
 
                             '''
                         }
