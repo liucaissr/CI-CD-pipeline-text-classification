@@ -30,6 +30,21 @@ lazy val commonSettings = Seq(
   publishHdfsService := "qc-contactrequest",
   publishHdfsBuild := version.value
 )
+lazy val root = (project in file("."))
+  .settings(commonSettings: _*)
+  .aggregate(
+    sparkDataset,
+    train
+  )
+
+lazy val sparkDataset = (project in file("spark-dataset"))
+  .enablePlugins(PublishHdfsPlugin, PublishScpPlugin)
+  .settings(commonSettings: _*)
+  .settings(assemblySettings: _*)
+
+lazy val train = (project in file("train"))
+  .settings(commonSettings: _*)
+
 lazy val assemblySettings = AssemblyPlugin.baseAssemblySettings ++ Seq(
   assemblyMergeStrategy in assembly := {
     case PathList("org", "aopalliance", xs @ _*)      => MergeStrategy.last
