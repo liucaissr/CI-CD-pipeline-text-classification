@@ -61,5 +61,8 @@ lazy val root = (project in file("."))
   )
 
 lazy val sparkDataset = (project in file("spark-dataset"))
+  .settings(
+    name := "spark-dataset"
+  )
   .settings(commonSettings: _*)
   .settings(assemblySettings: _*)
