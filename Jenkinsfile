@@ -25,11 +25,6 @@ pipeline {
         stage('Build & Publish') {
             steps {
                sh '''
-               echo $PATH
-               chmod -R 755 $JAVA_HOME
-               chmod -R 755 $JAVA_HOME/jdk1.8.0_172/bin
-               ls $JAVA_HOME
-               java -version
                sbt jenkinsTask
                '''
                 // write the BUILD_NUMBER into a file and stash it
@@ -53,7 +48,8 @@ pipeline {
                                 export JAVA_HOME=${JAVA_HOME}/jdk1.8.0_172
                                 export PATH=$JAVA_HOME/bin:$PATH
                                 echo $JAVA_HOME
-                                ./spark/bin/spark-submit --master yarn --deploy-mode cluster --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --class jobs.Dwh2Positive /target/scala-2.11/latest.jar
+                                ./spark/bin/spark-submit --master yarn --deploy-mode client  --driver-memory 4g --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --driver-java-options "-Dconfig.resource=application.conf" --class jobs.Dwh2Positive /var/lib/jenkins/workspace/Data/qc-contactrequest/spark-dataset/target/scala-2.11/spark-dataset-assembly-1.${BUILD_NUMBER}.jar
+
                             '''
                         }
                     }
