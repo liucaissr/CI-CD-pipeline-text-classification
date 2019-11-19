@@ -27,7 +27,7 @@ pipeline {
                sh '''
                echo $JAVA_HOME
                echo $PATH
-               chmod a+x java
+               chmod a+x $JAVA_HOME/bin/java
                sbt jenkinsTask
                '''
                 // write the BUILD_NUMBER into a file and stash it
