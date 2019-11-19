@@ -38,6 +38,9 @@ lazy val root = (project in file("."))
   )
 
 lazy val sparkDataset = (project in file("spark-dataset"))
+  .settings(
+    name := "spark-dataset"
+  )
   .enablePlugins(PublishHdfsPlugin, PublishScpPlugin)
   .settings(commonSettings: _*)
   .settings(assemblySettings: _*)
@@ -67,17 +70,3 @@ lazy val assemblySettings = AssemblyPlugin.baseAssemblySettings ++ Seq(
       oldStrategy(x)
   }
 )
-
-lazy val root = (project in file("."))
-  .settings(commonSettings: _*)
-  .enablePlugins(PublishHdfsPlugin, PublishScpPlugin)
-  .aggregate(
-    sparkDataset
-  )
-
-lazy val sparkDataset = (project in file("spark-dataset"))
-  .settings(
-    name := "spark-dataset"
-  )
-  .settings(commonSettings: _*)
-  .settings(assemblySettings: _*)
