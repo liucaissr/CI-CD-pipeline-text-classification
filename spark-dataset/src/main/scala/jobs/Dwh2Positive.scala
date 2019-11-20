@@ -115,7 +115,7 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
 
       val basePath = (exportTo + "qc-deletionreason-"
         + di.datasetName.replaceAll("[\\s\\-()]", "") + "-ds"
-        + "/1." + buildNumber)
+        + "/" + buildNumber)
 
       exportHelper.datasetWriter(di, df, basePath, datasetSize)
 

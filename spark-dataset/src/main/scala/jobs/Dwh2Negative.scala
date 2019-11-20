@@ -217,7 +217,7 @@ object Dwh2Negative extends IgnoreSparkMasterSysProp with Logging {
 
       val basePath = (exportTo + "qc-"
         + di.datasetName.replaceAll("[\\s\\-()]", "") + "-ds"
-        + "/1." + buildNumber)
+        + "/" + buildNumber)
 
       exportHelper.datasetWriter(di, df, basePath, datasetSize)
 
