@@ -41,9 +41,13 @@ lazy val sparkDataset = (project in file("spark-dataset"))
   .settings(
     name := "spark-dataset"
   )
-  .enablePlugins(PublishHdfsPlugin, PublishScpPlugin)
+  .enablePlugins(PublishHdfsPlugin, PublishScpPlugin, BuildInfoPlugin)
   .settings(commonSettings: _*)
   .settings(assemblySettings: _*)
+  .settings(
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
+    buildInfoPackage := "buildInfo"
+  )
 
 lazy val train = (project in file("train"))
   .settings(commonSettings: _*)

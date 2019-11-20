@@ -1,5 +1,6 @@
 package jobs
 import com.typesafe.config.ConfigFactory
+import buildInfo.BuildInfo
 import net.gutefrage.data.commons.embeddings.CleanEmbeddings
 import net.gutefrage.etl.commons.conf.SparkConfOps.LoadFromConfig
 import net.gutefrage.etl.commons.conf.IgnoreSparkMasterSysProp
@@ -11,7 +12,6 @@ import org.apache.spark.sql.functions.{broadcast, _}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.mutable.ListBuffer
-import scala.util.Properties
 import util.{DatasetInfo, ExportHelper}
 
 object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
@@ -31,7 +31,7 @@ object Dwh2Positive extends IgnoreSparkMasterSysProp with Logging {
   val hdfsHost    = config.getString("hdfs.host")
   val exportFrom  = config.getString("job.dwh.mysql")
   val exportTo    = config.getString("job.dwh2positive.target")
-  val buildNumber = Properties.envOrNone("BUILD_NUMBER").getOrElse("1-SNAPSHOT")
+  val buildNumber = BuildInfo.version
 
   val bytesPerPartition: Long  = 1024L * 1024 * 250 // MB (mind compression ration ~4:1)
   val bytesPerFetchBlock: Long = 1024L * 1024 * 2 // = initial task size

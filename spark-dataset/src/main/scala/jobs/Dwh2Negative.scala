@@ -1,4 +1,5 @@
 package jobs
+import buildInfo.BuildInfo
 import com.typesafe.config.ConfigFactory
 import net.gutefrage.etl.commons.conf.{DbConfig, IgnoreSparkMasterSysProp}
 import net.gutefrage.etl.commons.util.Logging
@@ -34,7 +35,7 @@ object Dwh2Negative extends IgnoreSparkMasterSysProp with Logging {
   val hdfsHost    = config.getString("hdfs.host")
   val exportFrom  = config.getString("job.dwh.mysql")
   val exportTo    = config.getString("job.dwh2negative.target")
-  val buildNumber = Properties.envOrNone("BUILD_NUMBER").getOrElse("1-SNAPSHOT")
+  val buildNumber = BuildInfo.version
 
   val bytesPerPartition: Long  = 1024L * 1024 * 250 // MB (mind compression ration ~4:1)
   val bytesPerFetchBlock: Long = 1024L * 1024 * 2 // = initial task size
