@@ -6,11 +6,10 @@ pipeline {
         JAVA_OPTS = "-Xmx2g"
         // SBT configuration
         SBT_OPTS = "-Xms2g -Xmx6g"
-        // requires an sbt installation named sbt-1.2.7
-        PATH = "${tool name: 'sbt-1.2.7', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'}/bin/:${PATH}"
         // java home not correct with jdk setting
         JAVA_HOME = "${tool 'jdk1.8.0_172'}"
-        PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+        // requires an sbt installation in the path and java
+        PATH = "${tool name: 'sbt-1.2.7', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'}/bin/:${env.JAVA_HOME}/bin:${PATH}"
     }
 
     tools {
