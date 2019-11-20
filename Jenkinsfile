@@ -41,7 +41,7 @@ pipeline {
                         // unstash the .build_number and .git_commit file
                         unstash 'pipeline'
                         // override the current BUILD_NUMBER with the contents of the .build_number file
-                        withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}"]) {
+                        withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}", "JAVA_HOME=${tool 'jdk1.8.0_172'}/jdk1.8.0_172"]) {
                             echo "Create dataset for build number ${BUILD_NUMBER} (with JAVA_HOME ${JAVA_HOME})"
                             sh '''
                                 wget -nv -O target/spark-cdh5_2.4.3-production.tgz http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz
