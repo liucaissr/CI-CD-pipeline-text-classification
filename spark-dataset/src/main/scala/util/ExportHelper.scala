@@ -6,7 +6,6 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import net.gutefrage.etl.commons.conf.DbConfig
 
-
 class ExportHelper(spark: SparkSession, config: Config) {
 
   lazy val statDbConfig = DbConfig("mysql.write")
