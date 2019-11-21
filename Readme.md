@@ -11,7 +11,7 @@ https://docs.microsoft.com/en-us/azure/machine-learning/team-data-science-proces
 
 ### Project spark-dataset
 - It exports dataset related to contactrequest questions to hdfs directory:
-http://hue.endor.gutefrage.net/hue/filebrowser/view=/user/hue#/data-projects/dataset/ivy-repo/releases/net.gutefrage.data/qc-deletionreason-contactrequest
+http://hue.endor.gutefrage.net/hue/filebrowser/view%3D/user/hue/#/data-projects/dataset/ivy-repo/releases/net.gutefrage.data.ml/qc-deletionreason-contactrequest-ds
 - start positive job: ```spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Positive spark-dataset-assembly-1-SNAPSHOT.jar```
 - start negative job: ```spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Negative spark-dataset-assembly-1-SNAPSHOT.jar```
 - Statistic is written in to lugger experimental/ai_dataset_exp temporarily
