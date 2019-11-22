@@ -6,10 +6,8 @@ pipeline {
         JAVA_OPTS = "-Xmx2g"
         // SBT configuration
         SBT_OPTS = "-Xms2g -Xmx6g"
-        // java home not correct with jdk setting
-        JAVA_HOME = "${tool 'jdk1.8.0_172'}/jdk1.8.0_172"
         // requires an sbt installation in the path and java
-        PATH = "${tool name: 'sbt-1.2.7', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'}/bin/:${env.JAVA_HOME}/bin:${PATH}"
+        PATH = "${tool name: 'sbt-1.2.7', type: 'org.jvnet.hudson.plugins.SbtPluginBuilder$SbtInstallation'}/bin/:${PATH}"
     }
 
     tools {
@@ -26,9 +24,7 @@ pipeline {
     stages {
         stage('Build & Publish') {
             steps {
-               sh '''
-               sbt jenkinsTask
-               '''
+               sh "sbt jenkinsTask"
                 // write the BUILD_NUMBER into a file and stash it
                 writeFile encoding: 'utf-8', file: '.pipeline.build_number', text: "$BUILD_NUMBER"
                 stash includes: '.pipeline.*', name: 'pipeline'
@@ -41,13 +37,13 @@ pipeline {
                         // unstash the .build_number and .git_commit file
                         unstash 'pipeline'
                         // override the current BUILD_NUMBER with the contents of the .build_number file
+                        // override JAVA_HOME with correct path
                         withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}", "JAVA_HOME=${tool 'jdk1.8.0_172'}/jdk1.8.0_172"]) {
                             echo "Create dataset for build number ${BUILD_NUMBER} (with JAVA_HOME ${JAVA_HOME})"
                             sh '''
                                 wget -nv -O target/spark-cdh5_2.4.3-production.tgz http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz
                                 tar -zxf target/spark-cdh5_2.4.3-production.tgz -C target
-                                java -version
-                                target/spark-2.4.3-bin-hadoop2.6/bin/spark-submit --master yarn --deploy-mode cluster --driver-memory 4g --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --class jobs.Dwh2Positive /var/lib/jenkins/workspace/Data/qc-contactrequest/spark-dataset/target/scala-2.11/spark-dataset-assembly-1.${BUILD_NUMBER}.jar
+                                target/spark-2.4.3-bin-hadoop2.6/bin/spark-submit --master yarn --deploy-mode cluster --driver-memory 4g --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --class jobs.Dwh2Positive spark-dataset/target/scala-2.11/spark-dataset-assembly-1.${BUILD_NUMBER}.jar
                             '''
                         }
                     }

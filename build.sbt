@@ -1,4 +1,6 @@
 name := "qc-contactrequest"
+//import net.gutefrage.sbt.spark.SparkPlugin
+
 import scala.util.Properties
 
 // scalafmt
@@ -38,9 +40,6 @@ lazy val root = (project in file("."))
   )
 
 lazy val sparkDataset = (project in file("spark-dataset"))
-  .settings(
-    name := "spark-dataset"
-  )
   .enablePlugins(PublishHdfsPlugin, PublishScpPlugin, BuildInfoPlugin)
   .settings(commonSettings: _*)
   .settings(assemblySettings: _*)
@@ -74,3 +73,9 @@ lazy val assemblySettings = AssemblyPlugin.baseAssemblySettings ++ Seq(
       oldStrategy(x)
   }
 )
+
+lazy val resolveSpark = taskKey[Unit]("download and unpack spark in target folder. Returns the spark folder.")
+
+resolveSpark := {
+  println("hello world!")
+}
