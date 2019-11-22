@@ -48,13 +48,21 @@ lazy val sparkDataset = (project in file("spark-dataset"))
     buildInfoPackage := "buildInfo",
     sparkSubmit := {
       val s: TaskStreams = streams.value
-      val assemblyFile = assembly.value
-      s.log.info(s"using assembly from $assemblyFile; TODO better use assemby form HDFS to support restart from stage in jenkins pipeline")
+      val assemblyFile   = assembly.value
+      s.log.info(
+        s"using assembly from $assemblyFile; TODO better use assemby form HDFS to support restart from stage in jenkins pipeline"
+      )
       val targetDir = target.value.getAbsolutePath
-      val wget = s"wget -c -nv -O $targetDir/spark-cdh5_2.4.3-production.tgz http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz".split(" ").toSeq
+      val wget =
+        s"wget -c -nv -O $targetDir/spark-cdh5_2.4.3-production.tgz http://tooldhcp01.endor.gutefrage.net/binaries/spark/spark-cdh5_2.4.3-production.tgz"
+          .split(" ")
+          .toSeq
       val tar = s"tar -kzxf $targetDir/spark-cdh5_2.4.3-production.tgz -C $targetDir".split(" ").toSeq
-      val submitJob = s"$targetDir/spark-2.4.3-bin-hadoop2.6/bin/spark-submit --master yarn --deploy-mode cluster --driver-memory 4g --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --class jobs.Dwh2Positive $assemblyFile".split(" ").toSeq
-      if((wget #&& tar #&& submitJob!) == 0) {
+      val submitJob =
+        s"$targetDir/spark-2.4.3-bin-hadoop2.6/bin/spark-submit --master yarn --deploy-mode cluster --driver-memory 4g --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --class jobs.Dwh2Positive $assemblyFile"
+          .split(" ")
+          .toSeq
+      if ((wget #&& tar #&& submitJob !) == 0) {
         s.log.success(s"sparkSubmit successful!")
       } else {
         throw new IllegalStateException("sparkSubmit build failed!")
@@ -89,4 +97,3 @@ lazy val assemblySettings = AssemblyPlugin.baseAssemblySettings ++ Seq(
 )
 
 lazy val sparkSubmit = taskKey[Unit]("downloads and unpacks spark in target folder. Then runs spark job.")
-
