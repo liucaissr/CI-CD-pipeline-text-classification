@@ -103,7 +103,7 @@ lazy val train = (project in file("train"))
   )
 
 lazy val downloadData = taskKey[Unit]("Download data for training")
-runDocker := {
+downloadData := {
   import sys.process._
   Seq(s"./train/downloadData.sh", s"${version.value}") !
 }
