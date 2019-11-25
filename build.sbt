@@ -76,7 +76,7 @@ lazy val train = (project in file("train"))
   .settings(
     name := "train",
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
-    buildInfoPackage := "buildInfo",
+    buildInfoPackage := "buildInfo"
   )
 
 lazy val downloadData = taskKey[Unit]("Download data for training")
