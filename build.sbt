@@ -61,8 +61,8 @@ lazy val sparkDataset = (project in file("spark-dataset"))
         s"$targetDir/spark-2.4.3-bin-hadoop2.6/bin/spark-submit --master yarn --deploy-mode cluster --driver-memory 4g --conf spark.ui.port=4052 --driver-class-path /etc/hadoop/conf.cloudera.hdfs --class jobs.Dwh2Negative $assemblyFile"
       )
       s.log.info("running commands:\n" + cmds.mkString("\n"))
-      val Seq(wget, tar, submitJob) = cmds.map(_.split(" ").toList)
-      if ((wget #&& tar #&& submitJob !) == 0) {
+      val Seq(wget, tar, submitJobPos, submitJobNeg) = cmds.map(_.split(" ").toList)
+      if ((wget #&& tar #&& submitJobPos #&& submitJobNeg !) == 0) {
         s.log.success(s"sparkSubmit successful!")
       } else {
         throw new IllegalStateException("sparkSubmit build failed!")
