@@ -102,10 +102,16 @@ lazy val train = (project in file("train"))
     }
   )
 
+lazy val downloadData = taskKey[Unit]("Download data for training")
+runDocker := {
+  import sys.process._
+  Seq(s"./train/downloadData.sh", s"${version.value}") !
+}
+
 lazy val runDocker = taskKey[Unit]("Run docker")
 runDocker := {
   import sys.process._
-  Seq(s"./runDocker.sh", s"${version.value}") !
+  Seq(s"./train/runDocker.sh", s"${version.value}") !
 }
 
 lazy val assemblySettings = AssemblyPlugin.baseAssemblySettings ++ Seq(

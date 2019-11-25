@@ -42,6 +42,7 @@ pipeline {
                             echo "Create dataset for build number ${BUILD_NUMBER} (with JAVA_HOME ${JAVA_HOME})"
                             sh '''
                             # sbt sparkDataset/sparkSubmit
+                            sbt downloadData
                             sbt runDocker
                             '''
                         }
