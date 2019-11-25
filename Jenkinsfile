@@ -30,23 +30,30 @@ pipeline {
                 stash includes: '.pipeline.*', name: 'pipeline'
             }
         }
-        stage('Deploy') {
-            parallel {
-                stage('Create dataset') {
-                    steps {
-                        // unstash the .build_number and .git_commit file
-                        unstash 'pipeline'
-                        // override the current BUILD_NUMBER with the contents of the .build_number file
-                        // override JAVA_HOME with correct path
-                        withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}", "JAVA_HOME=${tool 'jdk1.8.0_172'}/jdk1.8.0_172"]) {
-                            echo "Create dataset for build number ${BUILD_NUMBER} (with JAVA_HOME ${JAVA_HOME})"
-                            sh '''
-                            # sbt sparkDataset/sparkSubmit
-                            sbt downloadData
-                            sbt runDocker
-                            '''
-                        }
-                    }
+        stage('Create Dataset') {
+            steps {
+                // unstash the .build_number and .git_commit file
+                unstash 'pipeline'
+                // override the current BUILD_NUMBER with the contents of the .build_number file
+                // override JAVA_HOME with correct path
+                withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}", "JAVA_HOME=${tool 'jdk1.8.0_172'}/jdk1.8.0_172"]) {
+                    echo "Create dataset for build number ${BUILD_NUMBER} (with JAVA_HOME ${JAVA_HOME})"
+                    sh "sbt sparkDataset/sparkSubmit"
+                }
+            }
+        }
+        stage('Train') {
+            steps {
+                // unstash the .build_number and .git_commit file
+                unstash 'pipeline'
+                // override the current BUILD_NUMBER with the contents of the .build_number file
+                // override JAVA_HOME with correct path
+                withEnv(["BUILD_NUMBER=${readFile encoding: 'utf-8', file: '.pipeline.build_number'}", "JAVA_HOME=${tool 'jdk1.8.0_172'}/jdk1.8.0_172"]) {
+                    echo "Create dataset for build number ${BUILD_NUMBER} (with JAVA_HOME ${JAVA_HOME})"
+                    sh '''
+                    sbt downloadData
+                    sbt runDocker
+                    '''
                 }
             }
         }
