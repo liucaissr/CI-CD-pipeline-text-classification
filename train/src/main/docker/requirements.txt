@@ -2,9 +2,6 @@ appnope==0.1.0
 attrs==19.1.0
 backcall==0.1.0
 bleach==3.1.0
-boto==2.49.0
-boto3==1.9.217
-botocore==1.12.217
 certifi==2019.6.16
 chardet==3.0.4
 Click==7.0
@@ -28,7 +25,6 @@ jupyter==1.0.0
 jupyter-client==5.3.3
 jupyter-console==6.0.0
 jupyter-core==4.5.0
-jupyter-tensorboard==0.1.10
 jupyterlab==1.1.4
 jupyterlab-server==1.0.6
 Keras==2.2.5
@@ -60,7 +56,6 @@ pyarrow==0.15.1
 pyemd==0.5.1
 Pygments==2.4.2
 pyparsing==2.4.2
-pyrsistent==0.15.4
 python-dateutil==2.8.0
 pytz==2019.2
 pyzmq==18.1.0
@@ -84,7 +79,6 @@ Tensorforce==0.5.1
 tensorpack==0.9.8
 terminado==0.8.2
 testpath==0.4.2
-tornado==6.0.3
 tqdm==4.35.0
 traitlets==4.3.2
 urllib3==1.25.3
