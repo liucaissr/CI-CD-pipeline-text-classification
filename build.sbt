@@ -85,10 +85,22 @@ downloadData := {
   Seq(s"./train/downloadData.sh", s"${version.value}") !
 }
 
-lazy val runDocker = taskKey[Unit]("Run docker")
-runDocker := {
+lazy val initDocker = taskKey[Unit]("Run deploy docker")
+initDocker := {
   import sys.process._
-  Seq(s"./train/runDocker.sh", s"${version.value}") !
+  Seq(s"./train/runDocker.sh", "init", s"${version.value}") !
+}
+
+lazy val depDocker = taskKey[Unit]("Run deploy docker")
+depDocker := {
+  import sys.process._
+  Seq(s"./train/runDocker.sh", "Dep", s"${version.value}") !
+}
+
+lazy val devDocker = taskKey[Unit]("Run develop docker")
+devDocker := {
+  import sys.process._
+  Seq(s"./train/runDocker.sh", "Dev", s"${version.value}") !
 }
 
 lazy val assemblySettings = AssemblyPlugin.baseAssemblySettings ++ Seq(
