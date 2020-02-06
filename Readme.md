@@ -12,13 +12,13 @@ Meanwhile, it conquers some challenges encountered frequently in a data science 
 
 To better demonstrate the usability of this pipeline, two workflow (use cases) were designed and implemented:
 
-**workflow 1 for development** 
+#### workflow 1 for development:
 1. Schedule the spark job for collecting data on daily basis.
 1. train model with local machine or dev-docker
-1. use git to track all changes (jupyter notebooks, dependencies and models)
+1. use git to track all changes with the help of git hooks (jupyter notebooks, dependencies and models)
 
 
-**workflow 2 for deployment** 
+#### workflow 2 for deployment:
 1. Schedule the spark job for collecting data on daily basis
 1. trigger a jenkins pipeline to automatically deploy a new model into production
 1. jenkins pipeline includes: 
@@ -27,7 +27,6 @@ To better demonstrate the usability of this pipeline, two workflow (use cases) w
     1. generate report from notebook with nbconvert
     1. deploy trained model into micro-service for real-time prediction
  
-   
     
 ## Data Acquisition and Understanding (project spark-dataset)
 
@@ -68,9 +67,10 @@ Clean up docker when needed:
 ./train/runDocker.sh "init" "1-SNAPSHOT"
 ```
 
-### Source:
+## Source:
 TDSP Piepeline instruction:
 https://docs.microsoft.com/en-us/azure/machine-learning/team-data-science-process/overview
+- Business Understanding
 - Business Understanding
 - Data Acquisition and Understanding
 - Modeling
