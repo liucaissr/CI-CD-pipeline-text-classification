@@ -41,6 +41,7 @@ http://hue.endor.gutefrage.net/hue/filebrowser/view%3D/user/hue/#/data-projects/
 
 In this stage, developers are able to do ML modeling using jupyter notebooks on Docker or on local machine.
 
+
 ### Run notebook locally with pyenv
 
 ```
