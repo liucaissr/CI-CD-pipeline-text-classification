@@ -30,11 +30,10 @@ done <<< "$(git diff --cached --name-status $against)"
 if  [[ "$pychanges" == true ]] ; then
     echo "changes in notebook found, dependencies update may required." 
 	pip freeze > $PWD/train/src/main/docker/requirements.txt
-	git diff $PWD/train/src/main/docker/requirements.txt | wc -l
 	if [[ $(git diff $PWD/train/src/main/docker/requirements.txt | wc -l) -gt 0 ]] ; 
 	#if [[ "$pychanges" == true ]] ; 
 	then
-		echo "updates found"
+		echo "updates in dependencies found"
 		git diff $PWD/train/src/main/docker/requirements.txt
 		# Allows us to read user input below, assigns stdin to keyboard
 		exec < /dev/tty
