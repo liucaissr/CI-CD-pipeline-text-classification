@@ -27,19 +27,17 @@ z40=0000000000000000000000000000000000000000
 while read file; do
     if [[ $file == *.ipynb ]]; then 
     	# convert to html
-    	exec < /dev/tty
-		while read -p "Do you wish to covert notbook $file to html?" yn; do
+		while read -p "Do you wish to covert notbook $file to html?" yn < /dev/tty; do
 		    case $yn in
 		        [Yy]* ) jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=-1 "$file"
-  						jupyter nbconvert "$file" --output-dir='output' --output="$(basename $file .ipynb)"
-  						git add "output/$(basename $file .ipynb).html"
-  						git commit -m "export $file to html"
+  						jupyter nbconvert "$file" --output-dir='train-report' --output="$(basename $file .ipynb)"
+  						git add "train-report/$(basename $file .ipynb).html"
+  						git commit -m "export $file train-report"
 						break ;;
 		        [Nn]* ) break ;;
 		        * ) echo "Please answer yes or no.";;
 		    esac
 		done
-		exit
     fi
 done <<< "$(git diff --name-only origin/master..HEAD)"
 
