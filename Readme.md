@@ -6,7 +6,7 @@ The projects in this repository implemented a CI pipeline of data science proces
 1. build and integrate model automatically to production for real-time prediction with tool sbt and jenkins 
 
 Meanwhile, it conquers some challenges encountered frequently in a data science process:
-1. version control of jupyter notebooks
+1. version control of jupyter notebooks and export its running result ([commit1](https://htmlpreview.github.io/?https://github.com/liucaissr/demo_Caggle_html/blob/master/dummy_docker.html))
 1. dependency management among collaboration team
 1. version control of data
 
