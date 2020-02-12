@@ -29,11 +29,17 @@ repopath=`git rev-parse --show-toplevel`
 while read file; do
     if [[ $file == *.ipynb ]]; then 
     	# convert to html
+    	filename=`basename $file .ipynb`
+    	dir=`dirname $file`
 		while read -p "Do you wish to covert notbook $file to html?" yn < /dev/tty; do
 		    case $yn in
 		        [Yy]* ) jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=-1 "$file"
-  						jupyter nbconvert "$file" --output-dir='train-report' --output="$(basename $file .ipynb)"
-  						git add "${repopath}/train-report/$(basename $file .ipynb).html"
+						if [ $? -eq 0 ]; then
+						    jupyter nbconvert "${dir}/${filename}.nbconvert.ipynb" --output-dir="${repopath}/train-report" --output="${filename}"
+						else
+						    exit 1
+						fi
+  						git add "${repopath}/train-report/${filename}.html"
   						git commit -m "export $file in train-report"
 						break ;;
 		        [Nn]* ) break ;;
