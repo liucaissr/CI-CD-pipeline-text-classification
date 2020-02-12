@@ -26,21 +26,21 @@ while read x file; do
     fi
 done <<< "$(git diff --cached --name-status $against)"
 
+repopath=`git rev-parse --show-toplevel`
 
 if  [[ "$pychanges" == true ]] ; then
-    echo "changes in notebook found, dependencies update may required." 
-	pip freeze > $PWD/train/src/main/docker/requirements.txt
-	if [[ $(git diff $PWD/train/src/main/docker/requirements.txt | wc -l) -gt 0 ]] ; 
+    echo "Changes in notebook found, dependencies update may required." 
+	pip freeze > "${repopath}/train/src/main/docker/requirements.txt"
+	if [[ $(git diff "${repopath}/train/src/main/docker/requirements.txt" | wc -l) -gt 0 ]] ; 
 	#if [[ "$pychanges" == true ]] ; 
 	then
-		echo "updates in dependencies found"
-		git diff $PWD/train/src/main/docker/requirements.txt
+		echo "Updates in dependencies found"
+		git diff --exit-code "${repopath}/train/src/main/docker/requirements.txt"
 		# Allows us to read user input below, assigns stdin to keyboard
-		exec < /dev/tty
-		while read -p "Do you wish to update the dependencies?" yn; do
+		while read -p "Do you wish to update the dependencies?" yn < /dev/tty; do
 		    case $yn in
-		        [Yy]* ) git add $PWD/train/src/main/docker/requirements.txt; break;;
-		        [Nn]* ) git checkout -- $PWD/train/src/main/docker/requirements.txt; exit;;
+		        [Yy]* ) git add "${repopath}/train/src/main/docker/requirements.txt"; break;;
+		        [Nn]* ) git checkout -- "${repopath}/train/src/main/docker/requirements.txt"; exit;;
 		        * ) echo "Please answer yes or no.";;
 		    esac
 		done

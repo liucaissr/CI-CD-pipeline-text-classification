@@ -24,6 +24,8 @@ url="$2"
 
 z40=0000000000000000000000000000000000000000
 
+repopath=`git rev-parse --show-toplevel`
+
 while read file; do
     if [[ $file == *.ipynb ]]; then 
     	# convert to html
@@ -31,8 +33,8 @@ while read file; do
 		    case $yn in
 		        [Yy]* ) jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=-1 "$file"
   						jupyter nbconvert "$file" --output-dir='train-report' --output="$(basename $file .ipynb)"
-  						git add "train-report/$(basename $file .ipynb).html"
-  						git commit -m "export $file train-report"
+  						git add "${repopath}/train-report/$(basename $file .ipynb).html"
+  						git commit -m "export $file in train-report"
 						break ;;
 		        [Nn]* ) break ;;
 		        * ) echo "Please answer yes or no.";;
