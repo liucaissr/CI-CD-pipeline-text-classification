@@ -1,10 +1,15 @@
 FROM python:3.6.9
 
-WORKDIR /usr/src/main/notebook
+WORKDIR /app
 
 # Install dependencies with pip and copy script
-COPY train/src/main/docker/requirements.txt ./
+COPY train/src/main/docker/tmp.txt ./
 
-RUN pip install --upgrade pip && \
-	pip install --no-cache-dir -r requirements.txt
+EXPOSE 8080
+
+VOLUME /app
+
+RUN git config --global core.hooksPath hooks && \
+    pip install --upgrade pip && \
+	pip install --no-cache-dir -r tmp.txt
 
