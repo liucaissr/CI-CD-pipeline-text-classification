@@ -10,6 +10,26 @@ Meanwhile, it conquers some challenges encountered frequently in a data science 
 1. dependency management among collaboration team
 1. version control of data
 
+### Quick demo of feature 2 in docker
+1. build docker image and run the container
+    ```bash
+    ./train/runDocker.sh Dev 1-SNAPSHOT initImage
+    ```
+1. config in the container
+    ```bash
+    nbstripout --install 
+    git config --global user.email "liucaissr@gmail.com"
+    git config --global user.name "liucaissr"
+    ```
+1. run jupyter notebook and open the provided link in browser
+    ```bash
+    jupyter notebook --ip=0.0.0.0 --port=8080 --no-browser --allow-root
+    ```
+1. use git to track changes in jupyter notebook, two git hooks in hooks folder will handle the following tasks automatically:
+    - git add file.ipynb: the output of cells in notebooks will be cleaned
+    - git commit: check changes in package dependencies, commit it when needed.
+    - git push: convert the changed notebooks into html and commit it.
+
 To better demonstrate the usability of this pipeline, two workflow (use cases) were designed and implemented:
 
 #### workflow 1 for development:
@@ -30,12 +50,21 @@ To better demonstrate the usability of this pipeline, two workflow (use cases) w
     
 ## Data Acquisition and Understanding (project spark-dataset)
 
-
-- It exports dataset related to contactrequest questions to hdfs:
-http://hue.endor.gutefrage.net/hue/filebrowser/view%3D/user/hue/#/data-projects/dataset/ivy-repo/releases/net.gutefrage.data.ml/qc-deletionreason-contactrequest-ds
-- start positive job: ```spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Positive spark-dataset-assembly-1-SNAPSHOT.jar```
-- start negative job: ```spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Negative spark-dataset-assembly-1-SNAPSHOT.jar```
+- It exports related dataset to hdfs
 - necessary statistic of the data (such as rows, size) is written into sql database 'lugger' experimental/ai_dataset_exp for sanity check
+
+1. compile spark-job:
+    ```bash
+    sbt sparkDataset/sparkSubmit
+    ```
+1. start positive job: 
+    ```bash
+    spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Positive spark-dataset-assembly-1-SNAPSHOT.jar
+    ```
+1. start negative job: 
+    ```bash
+    spark2-submit --conf spark.ui.port=4051  --driver-class-path /etc/hadoop/conf --class jobs.Dwh2Negative spark-dataset-assembly-1-SNAPSHOT.jar
+    ```
 
 ## Modeling (project train)
 
