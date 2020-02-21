@@ -17,9 +17,8 @@ Meanwhile, it conquers some challenges encountered frequently in a data science 
     ```
 1. config in the container
     ```bash
-    nbstripout --install 
-    git config --global user.email "liucaissr@gmail.com"
-    git config --global user.name "liucaissr"
+    nbstripout --install #to clean up notebook output when git add
+    git config --list #to config 
     ```
 1. run jupyter notebook and open the provided link in browser
     ```bash
@@ -29,6 +28,14 @@ Meanwhile, it conquers some challenges encountered frequently in a data science 
     - git add file.ipynb: the output of cells in notebooks will be cleaned
     - git commit: check changes in package dependencies, commit it when needed.
     - git push: convert the changed notebooks into html and commit it.
+1. after built the image, to restart the contianer:
+   ```bash
+    ./train/runDocker.sh Dev 1-SNAPSHOT
+    ```
+   to reinitialize the contianer:
+   ```bash
+    ./train/runDocker.sh Dev 1-SNAPSHOT initContainer
+    ```
 
 To better demonstrate the usability of this pipeline, two workflow (use cases) were designed and implemented:
 
@@ -84,7 +91,7 @@ pip install --upgrade pip && pip install --no-cache-dir -r train/src/main/docker
 
 start dev-docker with shell script
 ```bash
-./train/runDocker.sh "Dev" "1-SNAPSHOT"
+./train/runDocker.sh Dev 1-SNAPSHOT
 ```
 or sbt command 
 ```bash
@@ -94,7 +101,7 @@ sbt devDocker
 
 Clean up docker when needed:
 ```bash
-./train/runDocker.sh "init" "1-SNAPSHOT"
+./train/runDocker.sh init 1-SNAPSHOT
 ```
 
 ## Source:
