@@ -13,3 +13,8 @@ RUN git config --global core.hooksPath hooks && \
     pip install --upgrade pip && \
 	pip install --no-cache-dir -r tmp.txt
 
+COPY train/src/main/docker/configDocker.sh ./
+
+RUN chmod +x configDocker.sh
+
+CMD ["./configDocker.sh"]

@@ -15,11 +15,6 @@ Meanwhile, it conquers some challenges encountered frequently in a data science 
     ```bash
     ./train/runDocker.sh Dev 1-SNAPSHOT initImage
     ```
-1. config in the container
-    ```bash
-    nbstripout --install #to clean up notebook output when git add
-    git config --list #to config 
-    ```
 1. run jupyter notebook and open the provided link in browser
     ```bash
     jupyter notebook --ip=0.0.0.0 --port=8080 --no-browser --allow-root

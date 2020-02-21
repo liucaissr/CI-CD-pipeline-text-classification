@@ -23,6 +23,8 @@ Dev() {
   echo "hallo developer";
   imageexisted=`docker images --format "{{.Repository}}:{{.Tag}}" | grep qc-contactrequest-image:$1`
   if [[ -z "$imageexisted" || "$2" == 'initImage' ]] ;then
+    docker rmi -f qc-contactrequest-image:$1
+    docker rm qc-contactrequest-container-$1
     docker build -f ${repopath}/train/src/main/docker/Dockerfile -t qc-contactrequest-image:$1 .
     docker create --name qc-contactrequest-container-$1 -v ~/.gitconfig:/etc/gitconfig -v ${repopath}:/app -i -t -p 8080:8080 qc-contactrequest-image:$1 bash
   fi
