@@ -6,7 +6,7 @@ The projects in this repository implemented a CI pipeline of data science proces
 1. build and integrate model automatically to production for real-time prediction with tool sbt and jenkins 
 
 Meanwhile, it conquers some challenges encountered frequently in a data science process:
-1. version control of jupyter notebooks and export its running result ([commit1](https://htmlpreview.github.io/?https://github.com/liucaissr/demo_Caggle_html/blob/master/dummy_docker.html))
+1. version control of jupyter notebooks and export its running result
 1. dependency management among collaboration team
 1. version control of data
 
@@ -22,7 +22,9 @@ Meanwhile, it conquers some challenges encountered frequently in a data science 
 1. use git to track changes in jupyter notebook, two git hooks in hooks folder will handle the following tasks automatically:
     - git add file.ipynb: the output of cells in notebooks will be cleaned
     - git commit: check changes in package dependencies, commit it when needed.
-    - git push: convert the changed notebooks into html and commit it.
+    - git push: convert the changed notebooks into html and commit it. 
+    ( [notebook result](https://htmlpreview.github.io/?https://github.com/liucaissr/demo_Caggle_html/blob/master/dummy_docker.html) )
+
 1. after built the image, to restart the contianer:
    ```bash
     ./train/runDocker.sh Dev 1-SNAPSHOT
