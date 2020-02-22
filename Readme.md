@@ -1,6 +1,5 @@
-# CI pipeline: Question Classifier of deletion reason contact request
-
-The projects in this repository implemented a CI pipeline of data science process in the context of NLP. It mainly realized the following features:
+# Caggle - Question Classifier CI/CD pipeline 
+The projects in this repository implemented [Kaggle-like](https://www.kaggle.com/)  a CI/CD pipeline of data science process in the context of NLP. It mainly realized the following features:
 
 | Feature | description | 
 | :--- |:-------------| 
