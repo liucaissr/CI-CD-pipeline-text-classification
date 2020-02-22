@@ -25,7 +25,7 @@ Meanwhile, it conquers some challenges encountered frequently in a data science 
     - git add file.ipynb: the output of cells in notebooks will be cleaned
     - git commit: check changes in package dependencies, commit it when needed.
     - git push: convert the changed notebooks into html and commit it. 
-    ( [notebook result](https://htmlpreview.github.io/?https://github.com/liucaissr/demo_Caggle_html/blob/master/dummy_docker.html) )
+    ( [notebook result](https://raw.githack.com/liucaissr/Caggle/master/train/report/demo_text_classification.html) )
 
 1. after built the image, to restart the contianer:
    ```bash
