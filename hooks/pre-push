@@ -35,12 +35,12 @@ while read file; do
 		    case $yn in
 		        [Yy]* ) jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=-1 "$file"
 						if [ $? -eq 0 ]; then
-						    jupyter nbconvert "${dir}/${filename}.nbconvert.ipynb" --output-dir="${repopath}/train-report" --output="${filename}"
+						    jupyter nbconvert "${dir}/${filename}.nbconvert.ipynb" --output-dir="${repopath}/train/report" --output="${filename}"
 						else
 						    exit 1
 						fi
-  						git add "${repopath}/train-report/${filename}.html"
-  						git commit -m "export $file in train-report"
+  						git add "${repopath}/train/report/${filename}.html"
+  						git commit -m "export $file in /train/report"
 						break ;;
 		        [Nn]* ) break ;;
 		        * ) echo "Please answer yes or no.";;
