@@ -26,15 +26,13 @@ Dev() {
     docker rmi -f qc-image:$1
     docker rm qc-container-$1
     docker build -f ${repopath}/train/src/main/docker/Dockerfile -t qc-image:$1 .
-    docker create --name qc-container-$1 -v ~/.gitconfig:/etc/gitconfig -v ${repopath}:/app -i -t -p 8080:8080 qc-image:$1 bash
+    docker create --name qc-container-$1 -v ~/.gitconfig:/root/.gitconfig -v ${repopath}:/app/caggle -i -t -p 8080:8080 qc-image:$1
   fi
   if [[ "$2" == 'initContainer' ]] ;then
     docker rm qc-container-$1
-    docker create --name qc-container-$1 -v ~/.gitconfig:/etc/gitconfig -v ${repopath}:/app -i -t -p 8080:8080 qc-image:$1 bash
+    docker create --name qc-container-$1 -v ~/.gitconfig:/root/.gitconfig -v ${repopath}:/app/caggle -i -t -p 8080:8080 qc-image:$1
   fi
   docker start -a -i qc-container-$1
 }
 
 "$@"
-
-
