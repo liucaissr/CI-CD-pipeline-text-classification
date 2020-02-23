@@ -31,6 +31,10 @@ while read file; do
     	# convert to html
     	filename=`basename $file .ipynb`
     	dir=`dirname $file`
+    	link=`git config --get remote.origin.url`
+      a=${link/https:\/\/github.com\/}
+      url="https://raw.githack.com/${a/.git}/master/train/report/"
+
 		while read -p "Do you wish to covert notbook $file to html?" yn < /dev/tty; do
 		    case $yn in
 		        [Yy]* ) jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=-1 "$file"
@@ -40,7 +44,7 @@ while read file; do
 						    exit 1
 						fi
   						git add "${repopath}/train/report/${filename}.html"
-  						git commit -m "export $file in /train/report"
+  						git commit -m "${url}${filename}.html"
 						break ;;
 		        [Nn]* ) break ;;
 		        * ) echo "Please answer yes or no.";;
