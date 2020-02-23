@@ -21,16 +21,17 @@ Dep() {
 
 Dev() {
   echo "hallo developer";
-  imageexisted=`docker images --format "{{.Repository}}:{{.Tag}}" | grep qc-image:$1`
-  if [[ -z "$imageexisted" || "$2" == 'initImage' ]] ;then
+  hasimage=`docker images --format "{{.Repository}}:{{.Tag}}" | grep "qc-image:$1"`
+  if [[ -z "$hasimage" || "$2" == 'initImage' ]] ;then
     docker rmi -f qc-image:$1
     docker rm qc-container-$1
     docker build -f ${repopath}/train/src/main/docker/Dockerfile -t qc-image:$1 .
-    docker create --name qc-container-$1 -v ~/.gitconfig:/root/.gitconfig -v ${repopath}:/app/caggle -i -t -p 8080:8080 qc-image:$1
+    docker create --name qc-container-$1 -v ~/.gitconfig:/app/.gitconfig -v ${repopath}:/app/repo -i -t -p 8080:8080 qc-image:$1
   fi
-  if [[ "$2" == 'initContainer' ]] ;then
+  hasimage=`docker ps -a --format "{{.Image}} {{.Names}}:" | grep "qc-image:$1 qc-container-$1:" `
+  if [[ -z "$hascontainer" ||  "$2" == 'initContainer' ]] ;then
     docker rm qc-container-$1
-    docker create --name qc-container-$1 -v ~/.gitconfig:/root/.gitconfig -v ${repopath}:/app/caggle -i -t -p 8080:8080 qc-image:$1
+    docker create --name qc-container-$1 -v ~/.gitconfig:/app/.gitconfig -v ${repopath}:/app/repo -i -t -p 8080:8080 qc-image:$1
   fi
   docker start -a -i qc-container-$1
 }

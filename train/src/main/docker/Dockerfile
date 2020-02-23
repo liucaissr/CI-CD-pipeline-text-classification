@@ -7,7 +7,7 @@ COPY train/src/main/docker/tmp.txt ./
 
 EXPOSE 8080
 
-VOLUME /app/caggle
+VOLUME /app/repo
 
 RUN pip install --upgrade pip && \
 	pip install --no-cache-dir -r tmp.txt

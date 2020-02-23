@@ -15,7 +15,7 @@ Meanwhile, it conquers some challenges encountered frequently in a data science 
 ### Quick demo of feature 2 in docker
 1. build docker image and run the container
     ```bash
-    ./train/runDocker.sh Dev 1-SNAPSHOT initImage
+    ./train/runDocker.sh Dev 1-SNAPSHOT
     ```
 1. run jupyter notebook and open the provided link in browser
     ```bash
@@ -27,22 +27,21 @@ Meanwhile, it conquers some challenges encountered frequently in a data science 
     - git push: convert the changed notebooks into html and commit it. 
     ( [notebook result](https://raw.githack.com/liucaissr/Caggle/master/train/report/demo_text_classification.html) )
 
-1. after built the image, to restart the contianer:
+1. to reinitialize the image
    ```bash
-    ./train/runDocker.sh Dev 1-SNAPSHOT
+    ./train/runDocker.sh Dev 1-SNAPSHOT initImage
     ```
    to reinitialize the contianer:
    ```bash
     ./train/runDocker.sh Dev 1-SNAPSHOT initContainer
     ```
-
+   
 To better demonstrate the usability of this pipeline, two workflow (use cases) were designed and implemented:
 
 #### workflow 1 for development:
 1. Schedule the spark job for collecting data on daily basis.
 1. train model with local machine or dev-docker
 1. use git to track all changes with the help of git hooks (jupyter notebooks, dependencies and models)
-
 
 #### workflow 2 for deployment:
 1. Schedule the spark job for collecting data on daily basis
