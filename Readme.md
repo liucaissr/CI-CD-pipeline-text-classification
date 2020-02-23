@@ -80,8 +80,8 @@ In this stage, developers are able to do ML modeling using jupyter notebooks on 
 
 ```
 pyenv install 3.6.9
-pyenv virtualenv 3.6.9 qc-contactrequest
-pyenv activate qc-contactrequest
+pyenv virtualenv 3.6.9 qc-caggle
+pyenv activate qc-caggle
 pip install --upgrade pip && pip install --no-cache-dir -r train/src/main/docker/requirements.txt
 ```
 
