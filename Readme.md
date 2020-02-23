@@ -22,11 +22,12 @@ Meanwhile, it conquers some challenges encountered frequently in a data science 
     jupyter notebook --ip=0.0.0.0 --port=8080 --no-browser --allow-root
     ```
 1. use git to track changes in jupyter notebook, two git hooks in hooks folder will handle the following tasks automatically:
-    - git add file.ipynb: the output of cells in notebooks will be cleaned
-    - git commit: check changes in package dependencies, commit it when needed.
-    - git push: convert the changed notebooks into html and commit it. 
-    ( [notebook result](https://raw.githack.com/liucaissr/Caggle/master/train/report/demo_text_classification.html) )
-
+    
+    | git command | when called, extra tasks to do implemented by git hooks | 
+    | :--- |:-------------| 
+    | ````git add *.ipynb```` | the output of cells in notebooks will be cleaned. |
+    | ```git commit``` | check changes in package dependencies, commit it when needed. |
+    | ```git push``` | convert the changed notebooks into html and commit it ([notebook result](https://raw.githack.com/liucaissr/Caggle/master/train/report/demo_text_classification.html))|
 1. to reinitialize the image
    ```bash
     ./train/runDocker.sh Dev demo initImage
@@ -79,8 +80,8 @@ In this stage, developers are able to do ML modeling using jupyter notebooks on 
 ### Run notebook locally with pyenv
 
 ```
-pyenv install 3.6.9
-pyenv virtualenv 3.6.9 qc-caggle
+pyenv install 3.7.6
+pyenv virtualenv 3.7.6 qc-caggle
 pyenv activate qc-caggle
 pip install --upgrade pip && pip install --no-cache-dir -r train/src/main/docker/requirements.txt
 ```

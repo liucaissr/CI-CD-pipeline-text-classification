@@ -1,0 +1,1 @@
+This empty folder is for saving output of notebook. (e.g. model, tokenizer ... etc)
