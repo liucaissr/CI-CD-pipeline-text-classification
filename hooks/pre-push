@@ -43,6 +43,7 @@ while read file; do
 						else
 						    exit 1
 						fi
+              #remove nbconvert file
   						git add "${repopath}/train/report/${filename}.html"
   						git commit -m "${url}${filename}.html"
 						break ;;
