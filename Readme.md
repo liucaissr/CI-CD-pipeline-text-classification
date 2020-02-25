@@ -103,6 +103,16 @@ Clean up docker when needed:
 ./train/runDocker.sh init 1-SNAPSHOT
 ```
 
+## Deployment (Jenkins)
+
+the model will be deployed using Jenkins. In the pipeline, 
+- it calls sbt to compile, package the spark-jobs and deploy them into cluster.
+- starts the spark-jobs and the exported data will be stored into hdfs with jenkin's build-number as id, so that the data is backup with version.
+- builts and runs dev-docker to convert notebook into html as jenkins report.
+- archives the outputs(e.g. ML model) after notebook's execution.
+
+For more detail, please check jenkinsfile.
+
 ## Source:
 TDSP Piepeline instruction:
 https://docs.microsoft.com/en-us/azure/machine-learning/team-data-science-process/overview
